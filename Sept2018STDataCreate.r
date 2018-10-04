@@ -178,6 +178,8 @@ d$fav <- ifelse(d$fav== "CMAL" , "CM,AL" , d$fav)
 d$fav <- ifelse(d$fav== "TOMM" , "TO,MM", d$fav)
 d$fav <- ifelse(d$fav== "FY/KM" , "FY,KM", d$fav)
 d$fav <- ifelse(d$fav== "DSRT" , "DS,RT", d$fav)
+d$fav <- ifelse(d$fav== "YADT" , "YA,DT", d$fav)
+
 d$fav <- ifelse(d$fav=="VIDEO" , "" , d$fav)
 d$fav <- ifelse(d$fav=="N" , "" , d$fav)
 ####replace roll with Scrub
