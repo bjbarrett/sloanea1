@@ -3,47 +3,194 @@ library(rethinking)
 library(rstan)
 library(chron)
 library(lubridate)
-
+library(beepr)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 setwd("~/Dropbox/sloanea")
 
 d <- read.csv("~/Dropbox/sloanea/ST2003to2012_Oct3_2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
 demo <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/Demography Data/Demography.csv" , na.strings = "" , stringsAsFactors=FALSE)
-
 ##get demo dates functional with lubridate
-demo$dob <- mdy(demo$dob)
+demo$dob <- mdy(as.factor(demo$dob))
+d$date <- ymd(as.factor(d$date))
 d$grouptoday <- gsub("M:BE-JN-TI-TR,aa" , "aa"  , d$grouptoday)
 d$grouptoday <- ifelse(d$mono=="TR" , d$grouptoday=="aa" , d$grouptoday )
 d$grouptoday_i <- as.integer(as.factor(d$grouptoday))
 d <- d[!is.na(d$mono),]
 dna <- d[is.na(d$mono),]
 
-##extract unique monkwys from dataset
+as.numeric(years(demo$dob[5:8]-demo$dob[1:4]))/(100*60*60*24*365)
+##define age by day function
+# agedays <- function(x,y){
+# 	as.numeric(days(x-y))/(60*60*24)
+# }
+# agesim <- function(x,y){
+# 	1-as.numeric(days(x-y)) / (60*60*24)
+# }
+
+ageyears <- function(x,y){
+	(interval(x,y)/days(1))*(1/365)
+}
+
+agecoho <- function(x,y){
+	1/abs( (interval(x,y)/days(1))*(1/365) )
+}
+
+#(interval(demo$dob[5],demo$dob[1])/days(1))*(1/365)
+
+##extract unique monkeys from dataset
 d$fav <- as.character(d$fav)
 d$rav <- as.character(d$rav)
 d$fav <- ifelse(d$fav== "YADT" , "YA,DT", d$fav)#in data creation now, can remove if dataset is recreated
 d$rav <- ifelse(d$rav== "MB CI" , "MB,CI", d$rav)#in data creation now, can remove if dataset is recreated
-
-focals <- as.vector(unique(d$mono))
-rav <- unique(unlist(strsplit(d$rav, ","), use.names = FALSE)) #https://stackoverflow.com/questions/3879522/finding-unique-values-from-a-list
+focals <- as.integer(as.factor(as.vector(sort(unique(d$mono)))))
+foc <- data.frame("mono" = as.vector(sort(unique(d$mono))), "mono_index" = as.integer(as.factor(as.vector(sort(unique(d$mono))))))
+foc[,1] <- as.character(foc[,1])
+#rav <- unique(unlist(strsplit(d$rav, ","), use.names = FALSE)) #https://stackoverflow.com/questions/3879522/finding-unique-values-from-a-list
 #fav <- unique(unlist(strsplit(d$fav, ","), use.names = FALSE))
-all_monos <- unique(unlist(list(rav,focals))) #makes a list that gets un;listed with unique vaues extracted
-sort(unique(all_monos))
-sort(unique(rav))
+# all_monos <- unique(unlist(list(rav,focals))) #makes a list that gets un;listed with unique vaues extracted
+# sort(unique(all_monos))
+# sort(unique(rav))
+focals
+# d$mono[all_monos %in% focals==TRUE]
 
-d$mono[all_monos %in% focals==TRUE]
-
-all_monos %in% d$mono
-d$mono %in% all_monos
+# all_monos %in% d$mono
+# d$mono %in% all_monos
 
 d$mono_index <- as.integer(as.factor(d$mono))
 length(unique(d$mono_index))
-d[d$rav=='UK',]
+#d[d$rav=='UK',]
  
- Freq <- array(0,dim=c(nrow(d),length(unique(d$mono_index)),6 ))
+o_freq <- o_age <- o_coho <- o_kin <- array(0,dim=c(nrow(d),length(unique(d$mono_index)),6 ))
+#double check code
+for( nobs in 1:nrow(d) ){
+    for (i in 1:nrow(foc)){
+        if ( grepl(foc[i,1],d[nobs,"rav"])==TRUE  ){
+        	o_freq[nobs,i,] <- 0 #assigns a 0 to all options if individual i is observing foraging bout nobs
+        	o_freq[nobs,i,d$TECH_i[nobs]] <- 1 #assigns a 1 observed option for individual i is observing foraging bout nobs
+        	o_age[nobs,i,] <- 0 #assigns age of forager to social cue
+        	o_age[nobs,i,d$TECH_i[nobs]] <- agecoho(demo$dob[demo$mono==d$mono[nobs]] , d$date[nobs]) #assigns a 1 observed option for individual i is observing foraging bout nobs
+            o_coho[nobs,i,] <- 0 #assigns age of forager to social cue
+        	o_coho[nobs,i,d$TECH_i[nobs]] <- agecoho(demo$dob[demo$mono==d$mono[nobs]] , demo$dob[demo$mono==foc[i,1]]) #assigns a 1 observed option for individual i is observing foraging bout nobs
+	        if ( identical( demo$mom[demo$mono==d$mono[nobs]] , demo$mom[demo$mono==foc[i,1]] ) | identical(  demo$mom[demo$mono==foc[i,1]] , d$mono[nobs] ) ){
+	        	o_kin[nobs,i,] <- 0 
+	        	o_kin[nobs,i,d$TECH_i[nobs]] <- 1 
+        	}
+        }	
+    }
+}
 
-as.vector(unique(strsplit(fav, ",", fixed = TRUE)))
+beep(1)
+
+identical (demo$mom[demo$mono=="LT"] , demo$mom[demo$mono=="LN"])
+
+#give each fruit a unique id in temporal order
+d$fruit_id <- 0
+for (i in 1:nrow(d) ){ d$fruit_id[i] <- i} 
+
+#create foraging bout for each time an individual updates personal info
+d$forg_bout <- rep(0,nrow(d))
+ff <- rep(0,length(unique(d$mono)))
+for (r in 1:nrow(d)) {
+    for(i in 1:length(unique(d$mono))) {
+        if( d[r,"mono_index"]==i){
+            ff[i] <-ff[i] + 1
+            d$forg_bout[r] <- ff[i]
+        }
+    }
+}
+beep(1)
+
+#order data frame
+df <- d
+d <- d[order(d$mono_i,d$timedate),]
+
+d <- d[order(d$fruit_id),]
+
+
+###frequency dependent learning
+d$s1 <- d$s2 <- d$s3 <- d$s4 <- d$s5 <- d$s6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
+
+for (nobs in 1:nrow(d)){
+	d$s1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) 
+	)
+
+	d$s2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) 
+	)
+
+	d$s3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) 
+	)
+
+	d$s4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) 
+	)
+
+	d$s5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) 
+	)
+
+	d$s6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) 
+	)
+
+}
+
+
+###age-biased learning
+#######PICK UP HERE ON SATURDAY#########
+d$a1 <- d$a2 <- d$a3 <- d$a4 <- d$a5 <- d$a6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
+
+for (nobs in 1:nrow(d)){
+	d$a1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) 
+	)
+
+	d$a2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) 
+	)
+
+	d$a3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) 
+	)
+
+	d$a4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) 
+	)
+
+	d$a5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) 
+	)
+
+	d$a6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) ,
+	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) 
+	)
+
+}
+
+# which(grepl("TU",d[,"rav"])==TRUE)
+# which(grepl("TU",d[,"mono"])==TRUE)
+
+
+
+
+
+
+# as.vector(unique(strsplit(fav, ",", fixed = TRUE)))
 d$year <- as.integer(as.factor(year(d$date)))
 d$yeartrue <- year(d$date)
 d$age <- d$yeartrue-d$yob
@@ -65,19 +212,7 @@ d$y4 <- ifelse(d$TECH_i==4 , 1, 0)
 d$y5 <- ifelse(d$TECH_i==5 , 1, 0)
 d$y6 <- ifelse(d$TECH_i==6 , 1, 0)
 
-d <- d[order(d$mono_i,d$timedate),]
 
-d$forg_bout <- rep(0,nrow(d))
-ff <- rep(0,length(unique(d$mono_i)))
-#create foraging bout for each time an individual updates personal info
-for (r in 1:nrow(d)) {
-    for(i in 1:length(unique(d$mono_i))) {
-        if( d[r,"mono_i"]==i){
-            ff[i] <-ff[i] + 1
-            d$forg_bout[r] <- ff[i]
-        }
-    }
-}
 
 d$date.chron <- chron(dates=as.character(d$date),format=c(dates="y-m-d") )
 d$dates.julian <- 1 + as.integer(d$date.chron-min(d$date.chron))
