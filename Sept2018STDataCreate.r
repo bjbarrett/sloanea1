@@ -93,11 +93,113 @@ d$timedate <- chron(dates=d$date, times=d$time ,format= c(dates="y-m-d", times="
 
 ###deal with issues in ravxx that make it a pair in the ass- its better than one in the true
 
+##make proximity data useful
+d$AA <- toupper(as.character(d$aa))
+d$AA <- gsub(" ", "", d$AA, fixed = TRUE)
+
+# d$AA <- ifelse(d$AA=="ON? OR LO?" , "ON,LO" , d$AA)
+# d$AA <- ifelse(d$AA=="PC? OR NE?" ,  "PC,NE" , d$AA)
+# d$AA <- ifelse(d$AA=="KK?" , "KK" , d$AA)
+# d$AA <- ifelse(d$AA=="NO INFO" , "" , d$AA)
+# d$AA <- ifelse(d$AA=="POSSIBLY CS" , "CS" , d$AA)
+# d$AA <- ifelse(d$AA=="LB (MORE NERVOUS STARE THAN INTEREST IN PROCESSING)" , "LB" , d$AA)
+# d$AA <- ifelse(d$AA=="?" , "" , d$AA)
+# d$AA <- ifelse(d$AA=="QJ (BECAUSE OF APPROACH NOT PROCESSING RELATED)" , "QJ" , d$AA)
+# d$AA <- ifelse(d$AA=="MZ,OCCASIONALLY" , "MZ" , d$AA)
+# d$AA <- ifelse(d$AA=="KY,FACING,HIM" , "KY" , d$AA)
+# d$AA <- ifelse(d$AA=="VL,(FOOD,INTEREST)" , "VL" , d$AA)
+# d$AA <- ifelse(d$AA=="PD(RCIPD)" , "PD" , d$AA)
+# d$AA <- ifelse(d$AA=="HC(RCIHC)" , "HC" , d$AA)
+# d$AA <- ifelse(d$AA=="CD(RESCD)" , "CD" , d$AA)
+# d$AA <- ifelse(d$AA=="VIDEO" , "" , d$AA)
+# d$AA <- ifelse(d$AA==" N" , "" , d$AA)
+d$AA <- ifelse(d$AA=="JP(DORSAL)" , "JP" , d$AA)
+d$AA <- ifelse(d$AA=="ML?" , "ML" , d$AA)
+d$AA <- ifelse(d$AA=="KY(DORSAL)" , "KY" , d$AA)
+d$AA <- ifelse(d$AA=="MZ.OW" , "MZ,OW" , d$AA)
+d$AA <- ifelse(d$AA=="MZ.OW" , "MZ,OW" , d$AA)
+d$AA <- gsub("?", "", d$AA, fixed = TRUE)
+d$AA <- ifelse(d$AA=="DA,(NOT,FORAGING,ST)" , "DA" , d$AA)
+d$AA <- ifelse(d$AA=="XDCKM" , "KM" , d$AA)
+d$AA <- ifelse(d$AA=="THCONTACT" , "TH" , d$AA)
+d$AA <- ifelse(d$AA=="MZ(D),MN" , "MZ,MN" , d$AA)
+d$AA <- ifelse(d$AA=="MZ(DORSAL)" , "MZ" , d$AA)
+d$AA <- ifelse(d$AA=="MM,MZKY" , "MM,MZ,KY" , d$AA)
+d$AA <- ifelse(d$AA=="DR(DORSAL)" , "DR" , d$AA)
+d$AA <- ifelse(d$AA=="DR(CONTACT)" , "DR" , d$AA)
+d$AA <- ifelse(d$AA=="DT(DORSAL)" , "DT" , d$AA)
+d$AA <- ifelse(d$AA=="EI,DORSAL" , "EI" , d$AA)
+d$AA <- ifelse(d$AA=="EI(D)" , "EI" , d$AA)
+d$AA <- ifelse(d$AA== "GT(CONTACT)PD(D)" , "GT,PD" , d$AA)
+d$AA <- ifelse(d$AA== "GT(CONTACT)PD(D)" , "GT,PD" , d$AA)
+d$AA <- ifelse(d$AA== "GT(CONTACT)PD(D)BB" , "GT,PD,BB" , d$AA)
+d$AA <- ifelse(d$AA== "GT(NURSING)" , "GT" , d$AA)
+d$AA <- ifelse(d$AA== "HIT,R" , "" , d$AA)
+d$AA <- ifelse(d$AA=="JU(D)" , "JU" , d$AA)
+d$AA <- ifelse(d$AA=="(HE,IN,1,RIGHT,BEFORE,THIS)" , "HE" , d$AA)
+d$AA <- ifelse(d$AA=="PD(D)" , "PD" , d$AA)
+d$AA <- ifelse(d$AA=="HE,(P)" , "HE" , d$AA)
+d$AA <- ifelse(d$AA=="HE,(P)" , "HE" , d$AA)
+d$AA <- ifelse(d$AA=="THCONTACT" , "TH" , d$AA)
+
+d$AA  <- ifelse( grepl('^[A-Za-z]+$', d$AA)==TRUE & stri_length(d$AA)==6, gsub("(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3", d$AA) , d$AA) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$AA  <- ifelse( grepl('^[A-Za-z]+$', d$AA)==TRUE & stri_length(d$AA)==4, gsub("(\\D\\D)(\\D\\D)", "\\1,\\2", d$AA) , d$AA) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$AA <- ifelse(d$AA==" LH,ERMP" , "LH,ER,MP" , d$AA)
+d$AA <- ifelse(d$AA=="DR(CONTACT)" , "DR" , d$AA)
+d$AA <- gsub("(P)", "", d$AA, fixed = TRUE)
+d$AA <- gsub("(D)", "", d$AA, fixed = TRUE)
+sort(unique(d$AA))
+
+d$BB <- toupper(as.character(d$bb))
+d$BB <- gsub("?", "", d$BB, fixed = TRUE)
+d$BB <- gsub(" ", "", d$BB, fixed = TRUE)
+d$BB <- gsub(".", ",", d$BB, fixed = TRUE)
+
+d$BB  <- ifelse( grepl('^[A-Za-z]+$', d$BB)==TRUE & stri_length(d$BB)==10, gsub("(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3,\\4,\\5", d$BB) , d$BB) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$BB  <- ifelse( grepl('^[A-Za-z]+$', d$BB)==TRUE & stri_length(d$BB)==8, gsub("(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3,\\4", d$BB) , d$BB) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$BB  <- ifelse( grepl('^[A-Za-z]+$', d$BB)==TRUE & stri_length(d$BB)==6, gsub("(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3", d$BB) , d$BB) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$BB  <- ifelse( grepl('^[A-Za-z]+$', d$BB)==TRUE & stri_length(d$BB)==4, gsub("(\\D\\D)(\\D\\D)", "\\1,\\2", d$BB) , d$BB) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$BB <- ifelse(d$BB=="," , "" , d$BB)
+d$BB <- ifelse(d$BB=="BK,WW,WG,WB,OJ,PLUSACOUPLEOTHERSINAPPROX.5" , "BK,WW,WG,WB,OJ" , d$BB)
+d$BB <- ifelse(d$BB=="BOJJ,JU,BH,EE" , "BO,JJ,JU,BH,EE" , d$BB)
+d$BB <- ifelse(d$BB=="CB,,RF" , "CB,RF" , d$BB)
+d$BB <- ifelse(d$BB=="CB/OT" , "CB,OT" , d$BB)
+d$BB <- ifelse(d$BB=="CL,RF,(ONLY,RF,PROCESSING)"  , "CL,RF"  , d$BB)
+d$BB <- ifelse(d$BB=="CN,"  , "CN"  , d$BB)
+d$BB <- ifelse(d$BB=="EIME(P)"  , "EI,ME"  , d$BB)
+d$BB <- ifelse(d$BB=="EO,MN,DD,DT,VDCK"  , "EO,MN,DD,DT,VD,CK"  , d$BB)
+d$BB <- ifelse(d$BB=="FVUFYKM"  , "VU,FY,KM"  , d$BB)
+d$BB <- ifelse(d$BB=="DI,"  , "DI"  , d$BB)
+d$BB <- ifelse(d$BB=="GF,OD,-,GROOMING,,NEITHER,PROCESSING"  , "GF,OD"  , d$BB)
+d$BB <- ifelse(d$BB=="HE,(2,LENGTHS)"  , "HE"  , d$BB)
+d$BB <- ifelse(d$BB=="HE,"  , "HE"  , d$BB)
+d$BB <- ifelse(d$BB=="HE,,LT"  , "HE,LT"  , d$BB)
+d$BB <- ifelse(d$BB=="HE(P)"  , "HE"  , d$BB)
+d$BB <- ifelse(d$BB=="JAME,TU(ONLY,WHILE,INGESTING)"  , "JA,ME,TU"  , d$BB)
+d$BB <- ifelse(d$BB=="KYVDVUCAVVDUEO"  , "KY,VD,VU,CA,VV,DU,EO"  , d$BB)
+d$BB <- ifelse(d$BB=="LT,,JJ"  , "JJ,LT"  , d$BB)
+d$BB <- ifelse(d$BB=="ME,"  , "ME"  , d$BB)
+d$BB <- ifelse(d$BB=="MF,"  , "MF"  , d$BB)
+d$BB <- ifelse(d$BB=="ML,"  , "ML"  , d$BB)
+d$BB <- ifelse(d$BB=="MN(P),OW"  , "MN,OW"  , d$BB)
+d$BB <- ifelse(d$BB=="MO,DK,WM,)BUT,NOT,DOING,SLOANEA)"   , "MO,DK,WM"   , d$BB)
+d$BB <- ifelse(d$BB=="OP(P)"   , "OP"   , d$BB)
+d$BB <- ifelse(d$BB=="QJ(P)"   , "QJ"   , d$BB)
+d$BB <- ifelse(d$BB=="RHSIKNAHCDDR"   , "RH,SI,KN,AH,CD,DR"   , d$BB)
+d$BB <- ifelse(d$BB=="RY,CONGOS"   , "RY"   , d$BB)
+d$BB <- ifelse(d$BB=="VD,(ONLY,DURING,INGEST)"   , "VD"   , d$BB)
+d$BB <- ifelse(d$BB=="VV(P)VDDU(P)"   , "VV,VD,DU"   , d$BB)
+d$BB <- ifelse(d$BB=="CN,(AND,DN,BUT,NOT,DOING,ST)"   , "CN,DN"   , d$BB)
+d$BB <- ifelse(d$BB=="BK,WW,WG,WB,OJ,PLUSACOUPLEOTHERSINAPPROX,5"   , "BK,WW,WG,WB,OJ"   , d$BB)
+d$BB <- gsub("(P)", "", d$BB, fixed = TRUE)
+
+sort(unique(d$BB))
+
+###rav
 d$rav_orig <- d$rav
 d$rav <- as.character(d$ravxx)
 d$rav <- toupper(d$rav)
-d$rav  <- ifelse( grepl('^[A-Za-z]+$', d$rav)==TRUE & stri_length(d$rav)==4, gsub("(\\d\\d)(\\d\\d)", "\\1,\\2", d$rav) , d$rav) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
-
+d$rav  <- ifelse( grepl('^[A-Za-z]+$', d$rav)==TRUE & stri_length(d$rav)==4, gsub("(\\D\\D)(\\D\\D)", "\\1,\\2", d$rav) , d$rav) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
 
 #gsub("KK?" , "dogs" , d$rav)
 d$rav <- ifelse(d$rav=="KK?" , "KK" , d$rav)
@@ -269,10 +371,11 @@ d$date <- as.Date(d$date)
 ds <- merge(d,ccc, by=c("mono" , "date") , all=TRUE)
 ds <- ds[!is.na(ds$TECH),]
 d<-ds
+names(d)[names(d) == 'grouptoday.y'] <- 'grouptoday'
 
 ####checkgrouptoday
 d <- d[order(d$timedate),]
-d <- subset(d , select=c(date,timedate , mono , TECH , grouptoday , natal , resident.group, mom , obs , tech.parse , switch , rav, fav , name, male, yob, dob))
+d <- subset(d , select=c(date,timedate , mono , TECH , grouptoday , natal , resident.group, mom , obs , tech.parse , switch , rav, fav , AA , BB , name, male, yob, dob ))
 
 
 ###WHEN NEW DATA GETS ADDED USE THIS TO CHECK FOR INCOSISTENCIES#####
@@ -313,14 +416,13 @@ d$grouptoday <- gsub("A:NM,M:HC-NM" , "lb"  , d$grouptoday)
 d$grouptoday <- gsub("M:HC-NM,lb" , "lb"  , d$grouptoday)
 d$grouptoday <- gsub("M:BE-JN-TI-TR" , "aa"  , d$grouptoday)
 
-d<- droplevels(d)
 d$male[d$male == '0?'] <- '0'
 d<- droplevels(d)
 
 d$male <- as.integer(d$male)
 d$male <- d$male - 1
  
-
+ddd <- d
 d <- d[!is.na(d$grouptoday),]
 
 d_alltechs <- d
