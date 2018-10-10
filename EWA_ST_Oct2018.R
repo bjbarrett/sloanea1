@@ -8,11 +8,11 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 setwd("~/Dropbox/sloanea")
 
-d <- read.csv("~/Dropbox/sloanea/ST2003to2012_Oct3_2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
-demo <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/Demography Data/Demography.csv" , na.strings = "" , stringsAsFactors=FALSE)
+d <- read.csv("~/Dropbox/sloanea/ST2003to2012_Oct6_2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
+demo <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/Demography Data/Demography-dates.csv" , na.strings = "" , stringsAsFactors=FALSE)
 ##get demo dates functional with lubridate
 demo$dob <- mdy(as.factor(demo$dob))
-d$date <- ymd(as.factor(d$date))
+d$date <- dmy(as.factor(d$date))  #excel might fuck this up if you open csv
 d$grouptoday <- gsub("M:BE-JN-TI-TR,aa" , "aa"  , d$grouptoday)
 d$grouptoday <- ifelse(d$mono=="TR" , d$grouptoday=="aa" , d$grouptoday )
 d$grouptoday_i <- as.integer(as.factor(d$grouptoday))
@@ -33,14 +33,17 @@ ageyears <- function(x,y){
 }
 
 agecoho <- function(x,y){
-	1/abs( (interval(x,y)/days(1))*(1/365) )
+	1/ (1 + abs( (interval(x,y)/days(1))*(1/365) ))
 }
 
 #(interval(demo$dob[5],demo$dob[1])/days(1))*(1/365)
-
+1/(1 -1+(1/365))
 ##extract unique monkeys from dataset
 d$fav <- as.character(d$fav)
 d$rav <- as.character(d$rav)
+d$AA <- as.character(d$AA)
+d$BB <- as.character(d$BB)
+
 d$fav <- ifelse(d$fav== "YADT" , "YA,DT", d$fav)#in data creation now, can remove if dataset is recreated
 d$rav <- ifelse(d$rav== "MB CI" , "MB,CI", d$rav)#in data creation now, can remove if dataset is recreated
 focals <- as.integer(as.factor(as.vector(sort(unique(d$mono)))))
@@ -61,29 +64,39 @@ d$mono_index <- as.integer(as.factor(d$mono))
 length(unique(d$mono_index))
 #d[d$rav=='UK',]
  
-o_freq <- o_age <- o_coho <- o_kin <- array(0,dim=c(nrow(d),length(unique(d$mono_index)),6 ))
+o_freq <- array(0,dim=c(nrow(d),length(unique(d$mono_index)),6 ))
+o_age <- o_coho <- o_kin <- array(NA,dim=c(nrow(d),length(unique(d$mono_index)),6 ))
+
 #double check code
 for( nobs in 1:nrow(d) ){
     for (i in 1:nrow(foc)){
-        if ( grepl(foc[i,1],d[nobs,"rav"])==TRUE  ){
+        if ( grepl(foc[i,1],d[nobs,"rav"])==TRUE || grepl(foc[i,1],d[nobs,"AA"])==TRUE || grepl(foc[i,1],d[nobs,"BB"])==TRUE){
         	o_freq[nobs,i,] <- 0 #assigns a 0 to all options if individual i is observing foraging bout nobs
         	o_freq[nobs,i,d$TECH_i[nobs]] <- 1 #assigns a 1 observed option for individual i is observing foraging bout nobs
-        	o_age[nobs,i,] <- 0 #assigns age of forager to social cue
-        	o_age[nobs,i,d$TECH_i[nobs]] <- agecoho(demo$dob[demo$mono==d$mono[nobs]] , d$date[nobs]) #assigns a 1 observed option for individual i is observing foraging bout nobs
-            o_coho[nobs,i,] <- 0 #assigns age of forager to social cue
+        	# o_age[nobs,i,] <- 0 #assigns age of forager to social cue
+        	o_age[nobs,i,d$TECH_i[nobs]] <- ageyears(demo$dob[demo$mono==d$mono[nobs]] , d$date[nobs]) #assigns a 1 observed option for individual i is observing foraging bout nobs
+            # o_coho[nobs,i,] <- 0 #assigns age of forager to social cue
         	o_coho[nobs,i,d$TECH_i[nobs]] <- agecoho(demo$dob[demo$mono==d$mono[nobs]] , demo$dob[demo$mono==foc[i,1]]) #assigns a 1 observed option for individual i is observing foraging bout nobs
 	        if ( identical( demo$mom[demo$mono==d$mono[nobs]] , demo$mom[demo$mono==foc[i,1]] ) | identical(  demo$mom[demo$mono==foc[i,1]] , d$mono[nobs] ) ){
 	        	o_kin[nobs,i,] <- 0 
 	        	o_kin[nobs,i,d$TECH_i[nobs]] <- 1 
+	        	#commented out zeros just takes mean of all observed values at each option, will plug in zeros at end, 
+	        	#this helps so a rare behavior made by an individual with a certain cue does not loose value becaue 0 go into average
         	}
         }	
     }
 }
 
-beep(1)
+beep(3)
 
-identical (demo$mom[demo$mono=="LT"] , demo$mom[demo$mono=="LN"])
+# o_age[,173,2] ##RO
+# o_age[,173,6] ##RO
+# o_age[,65,2] ##EO
+# o_age[,190,2] ##Sr
+# o_age[,197,2] ##TD
 
+# identical (demo$mom[demo$mono=="LT"] , demo$mom[demo$mono=="LN"])
+dr <- d
 #give each fruit a unique id in temporal order
 d$fruit_id <- 0
 for (i in 1:nrow(d) ){ d$fruit_id[i] <- i} 
@@ -99,101 +112,240 @@ for (r in 1:nrow(d)) {
         }
     }
 }
-beep(1)
+beep(5)
 
 #order data frame
 df <- d
-d <- d[order(d$mono_i,d$timedate),]
-
 d <- d[order(d$fruit_id),]
+
+d$date.chron <- chron(dates=as.character(d$date),format=c(dates="y-m-d") )
+d$dates.julian <- 1 + as.integer(d$date.chron-min(d$date.chron))
+win_width <- 28 #social info memory window in days
 
 
 ###frequency dependent learning
 d$s1 <- d$s2 <- d$s3 <- d$s4 <- d$s5 <- d$s6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
-
-for (nobs in 1:nrow(d)){
-	d$s1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) 
-	)
-
-	d$s2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) 
-	)
-
-	d$s3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) 
-	)
-
-	d$s4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) 
-	)
-
-	d$s5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) 
-	)
-
-	d$s6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) 
-	)
-
-}
-
-
 ###age-biased learning
-#######PICK UP HERE ON SATURDAY#########
 d$a1 <- d$a2 <- d$a3 <- d$a4 <- d$a5 <- d$a6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
+#cohort bias
+d$c1 <- d$c2 <- d$c3 <- d$c4 <- d$c5 <- d$c6 <- 66
+###kin biases
+d$k1 <- d$k2 <- d$k3 <- d$k4 <- d$k5 <- d$k6 <- 66 
 
 for (nobs in 1:nrow(d)){
-	d$a1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) 
-	)
-
-	d$a2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) 
-	)
-
-	d$a3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) 
-	)
-
-	d$a4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) 
-	)
-
-	d$a5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) 
-	)
-
-	d$a6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
-	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) ,
-	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) 
-	)
-
-}
-
-# which(grepl("TU",d[,"rav"])==TRUE)
-# which(grepl("TU",d[,"mono"])==TRUE)
+	 zz<-min(d$fruit_id[d$dates.julian >= d$dates.julian[nobs]-win_width])
+	 d$s1[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) 
+     d$s2[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) 
+	 d$s3[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) 
+	 d$s4[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) 
+	 d$s5[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) 
+	 d$s6[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] )
+	d$a1[nobs] <- mean( o_age[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE)
+	d$a2[nobs] <- mean( o_age[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) 
+	d$a3[nobs] <- mean( o_age[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE) 
+    d$a4[nobs] <- mean( o_age[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) 
+    d$a5[nobs] <- mean( o_age[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) 
+    d$a6[nobs] <- mean( o_age[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE)
+    d$c1[nobs] <- mean( o_coho[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE)
+	d$c2[nobs] <- mean( o_coho[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) 
+	d$c3[nobs] <- mean( o_coho[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE) 
+    d$c4[nobs] <- mean( o_coho[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) 
+    d$c5[nobs] <- mean( o_coho[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) 
+    d$c6[nobs] <- mean( o_coho[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE)
+    d$k1[nobs] <- mean( o_kin[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE)
+	d$k2[nobs] <- mean( o_kin[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) 
+	d$k3[nobs] <- mean( o_kin[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE) 
+    d$k4[nobs] <- mean( o_kin[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) 
+    d$k5[nobs] <- mean( o_kin[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) 
+    d$k6[nobs] <- mean( o_kin[ zz:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE)    
+	}
 
 
 
+# for (nobs in 1:nrow(d)){
+# 	d$s1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) ,
+# 	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) 
+# 	)
 
+# 	d$s2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) ,
+# 	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) 
+# 	)
+
+# 	d$s3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) ,
+# 	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) 
+# 	)
+
+# 	d$s4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) ,
+# 	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) 
+# 	)
+
+# 	d$s5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) ,
+# 	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) 
+# 	)
+
+# 	d$s6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 sum( o_freq[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) ,
+# 	 sum( o_freq[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) 
+# 	)
+
+# }
+
+
+# ###age-biased learning
+# d$a1 <- d$a2 <- d$a3 <- d$a4 <- d$a5 <- d$a6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
+
+# for (nobs in 2:nrow(d)){
+# 	 zz <- min( d$fruit_id[d$dates.julian >= (d$dates.julian[nobs]-win_width)] )
+# 	 d$s1[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] ) ,
+#      d$s2[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] ) ,
+# 	 d$s3[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] ) ,
+# 	 d$s4[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] ) ,
+# 	 d$s5[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] ) ,
+# 	 d$s6[nobs] <- sum( o_freq[ zz : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] ) 
+# 	}
+
+
+# for (nobs in 1:nrow(d)){
+# 	d$a1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_age[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE) ,
+# 	 mean( o_age[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$a2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_age[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) ,
+# 	 mean( o_age[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$a3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_age[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE ) ,
+# 	 mean( o_age[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$a4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_age[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) ,
+# 	 mean( o_age[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$a5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_age[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) ,
+# 	 mean( o_age[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$a6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_age[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE) ,
+# 	 mean( o_age[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE) 
+# 	)
+
+# }
+# beep(1)
+
+# d$c1 <- d$c2 <- d$c3 <- d$c4 <- d$c5 <- d$c6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
+
+
+# for (nobs in 1:nrow(d)){
+# 	d$c1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_coho[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE) ,
+# 	 mean( o_coho[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$c2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_coho[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) ,
+# 	 mean( o_coho[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$c3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_coho[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE ) ,
+# 	 mean( o_coho[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$c4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_coho[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) ,
+# 	 mean( o_coho[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$c5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_coho[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) ,
+# 	 mean( o_coho[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$c6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_coho[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE) ,
+# 	 mean( o_coho[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE) 
+# 	)
+
+# }
+# beep(1)
+
+
+# d$k1 <- d$k2 <- d$k3 <- d$k4 <- d$k5 <- d$k6 <- 66 #set up colums for frequency dependene where social info is sum between timesteps
+
+# for (nobs in 1:nrow(d)){
+# 	d$k1[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_kin[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE) ,
+# 	 mean( o_kin[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 1 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$k2[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_kin[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) ,
+# 	 mean( o_kin[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 2 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$k3[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_kin[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE ) ,
+# 	 mean( o_kin[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 3 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$k4[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_kin[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) ,
+# 	 mean( o_kin[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 4 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$k5[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_kin[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) ,
+# 	 mean( o_kin[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 5 ] , na.rm = TRUE) 
+# 	)
+
+# 	d$k6[nobs] <- ifelse( d$forg_bout[nobs] > 1 ,
+# 	 mean( o_kin[ (d$fruit_id[ nobs - 1 ]) : (d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE) ,
+# 	 mean( o_kin[ 1:(d$fruit_id[nobs] - 1) , d$mono_index[nobs] , 6 ] , na.rm = TRUE) 
+# 	)
+
+# }
+# beep(1)
+
+
+d$a6[is.nan(d$a6)] <- 0 #gets rid on nans
+d$a5[is.nan(d$a5)] <- 0
+d$a4[is.nan(d$a4)] <- 0
+d$a3[is.nan(d$a3)] <- 0
+d$a2[is.nan(d$a2)] <- 0
+d$a1[is.nan(d$a1)] <- 0
+d$k6[is.nan(d$k6)] <- 0 #gets rid on nans
+d$k5[is.nan(d$k5)] <- 0
+d$k4[is.nan(d$k4)] <- 0
+d$k3[is.nan(d$k3)] <- 0
+d$k2[is.nan(d$k2)] <- 0
+d$k1[is.nan(d$k1)] <- 0
+d$c6[is.nan(d$c6)] <- 0 #gets rid on nans
+d$c5[is.nan(d$c5)] <- 0
+d$c4[is.nan(d$c4)] <- 0
+d$c3[is.nan(d$c3)] <- 0
+d$c2[is.nan(d$c2)] <- 0
+d$c1[is.nan(d$c1)] <- 0
+
+dd <- drop.levels(d)
 
 
 # as.vector(unique(strsplit(fav, ",", fixed = TRUE)))
 d$year <- as.integer(as.factor(year(d$date)))
 d$yeartrue <- year(d$date)
 d$age <- d$yeartrue-d$yob
+d$agecont <- 
 d$y2012 <- ifelse(year(d$date)==2012, 1, 0)
 d$y2011 <- ifelse(year(d$date)==2011, 1, 0)
 d$y2010 <- ifelse(year(d$date)==2010, 1, 0)
@@ -213,32 +365,32 @@ d$y5 <- ifelse(d$TECH_i==5 , 1, 0)
 d$y6 <- ifelse(d$TECH_i==6 , 1, 0)
 
 
+mono_index <- data.frame(as.vector(unique(d$mono)), as.vector(unique(d$mono_index)))
+#setNames(mono_index, c("mono", "mono_i"))
 
-d$date.chron <- chron(dates=as.character(d$date),format=c(dates="y-m-d") )
-d$dates.julian <- 1 + as.integer(d$date.chron-min(d$date.chron))
-for (i in 1:nrow(d)){
-	d$s1[i] <- sum(d$y1[d$dates.julian<d$dates.julian[i] & d$dates.julian>=(d$dates.julian[i]-14) & d$grouptoday==d$grouptoday[i] ])
-	d$s2[i] <- sum(d$y2[d$dates.julian<d$dates.julian[i] & d$dates.julian>=(d$dates.julian[i]-14) & d$grouptoday==d$grouptoday[i] ])
-	d$s3[i] <- sum(d$y3[d$dates.julian<d$dates.julian[i] & d$dates.julian>=(d$dates.julian[i]-14) & d$grouptoday==d$grouptoday[i] ])
-	d$s4[i] <- sum(d$y4[d$dates.julian<d$dates.julian[i] & d$dates.julian>=(d$dates.julian[i]-14) & d$grouptoday==d$grouptoday[i] ])
-	d$s5[i] <- sum(d$y5[d$dates.julian<d$dates.julian[i] & d$dates.julian>=(d$dates.julian[i]-14) & d$grouptoday==d$grouptoday[i] ])
-	d$s6[i] <- sum(d$y6[d$dates.julian<d$dates.julian[i] & d$dates.julian>=(d$dates.julian[i]-14) & d$grouptoday==d$grouptoday[i] ])
-}
-
-mono_index <- data.frame(as.vector(unique(d$mono)), as.vector(unique(d$mono_i)))
-setNames(mono_index, c("mono", "mono_i"))
+str(d)
 
 d$pop_month <- 0
-
 for (i in 1:nrow(d)){
 	d$pop_month[i] <-length(unique(d$mono[d$year==d$year[i] & d$grouptoday==d$grouptoday[i]]))
 }
+d$pop_month_s <- d$pop_month - mean(d$pop_month)/sd(d$pop_month)
+d$age_s <- d$age - mean(d$age)/sd(d$age)
+d$dob <- as.Date(d$dob,format='%m/%d/%y')
+year(d$dob) <- ifelse( year(d$dob)==2067 , 1967, year(d$dob))
 
+d$agecont <-ageyears( d$dob , d$date)
+d$agecont_s <- (d$agecont - mean(d$agecont))/sd(d$agecont)
+
+###this orders in monkey order
+d <- d[order(d$mono_index,d$timedate),]
+
+d<- write.csv(d, "ST_28_aabbrav_9Oct2018.csv")
+###migration dataset
 dm<- subset(d,male==1)
 migmales <- unique(dm$mono[dm$postmig==1])
 dm <- dm[!is.na(dm$mono),]
 dm$mono_i <- as.integer(as.factor(dm$mono_i))
-
 dm <- dm[dm$mono %in% migmales,]
 
 datalist_i <- list(
@@ -251,7 +403,7 @@ bout = d$forg_bout,#bout is forg index here
 id = as.integer(as.factor(d$mono_i)),
 N_effects=1,
 year=d$year,
-age=d$age
+age=d$agecont_s
 
 )
 
@@ -264,77 +416,80 @@ y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6 ),
 s = cbind(d$s1 , d$s2 , d$s3 , d$s4 ,d$s5 ,d$s6  ) ,
 bout = d$forg_bout,#bout is forg index here
 id = as.integer(as.factor(d$mono_i)),
-N_effects=3,
+N_effects=4,
 postmig=d$postmig,
-postfizz = d$postfizz
+postfizz = d$postfizz, 
+age=d$agecont_s
+
 )
 
-datalist_smig <- list(
-N = nrow(dm),
-J = length( unique(dm$mono_i) ),
-K=max(dm$TECH_i),
-tech = dm$TECH_i,
-y = cbind( dm$y1 , dm$y2 , dm$y3 , dm$y4 , dm$y5 , dm$y6 ),
-s = cbind(dm$s1 , dm$s2 , dm$s3 , dm$s4 ,dm$s5 ,dm$s6  ) ,
-bout = dm$forg_bout,#bout is forg index here
-id = as.integer(as.factor(dm$mono_i)),
-N_effects=3,
-postmig=dm$postmig
-)
+# datalist_smig <- list(
+# N = nrow(dm),
+# J = length( unique(dm$mono_i) ),
+# K=max(dm$TECH_i),
+# tech = dm$TECH_i,
+# y = cbind( dm$y1 , dm$y2 , dm$y3 , dm$y4 , dm$y5 , dm$y6 ),
+# s = cbind(dm$s1 , dm$s2 , dm$s3 , dm$s4 ,dm$s5 ,dm$s6  ) ,
+# bout = dm$forg_bout,#bout is forg index here
+# id = as.integer(as.factor(dm$mono_i)),
+# N_effects=3,
+# postmig=dm$postmig
+# )
 
-datalist_sfizz <- list(
-N = nrow(d),
-J = length( unique(d$mono_i) ),
-K=max(d$TECH_i),
-tech = d$TECH_i,
-y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6 ),
-s = cbind(d$s1 , d$s2 , d$s3 , d$s4 ,d$s5 ,d$s6  ) ,
-bout = d$forg_bout,#bout is forg index here
-id = as.integer(as.factor(d$mono_i)),
-N_effects=3,
-postmig=d$post_fizz
-)
+# datalist_sfizz <- list(
+# N = nrow(d),
+# J = length( unique(d$mono_i) ),
+# K=max(d$TECH_i),
+# tech = d$TECH_i,
+# y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6 ),
+# s = cbind(d$s1 , d$s2 , d$s3 , d$s4 ,d$s5 ,d$s6  ) ,
+# bout = d$forg_bout,#bout is forg index here
+# id = as.integer(as.factor(d$mono_i)),
+# N_effects=3,
+# postmig=d$post_fizz
+# )
 
-datalist_ssize <- list(
-N = nrow(d),
-J = length( unique(d$mono_i) ),
-K=max(d$TECH_i),
-tech = d$TECH_i,
-y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6 ),
-s = cbind(d$s1 , d$s2 , d$s3 , d$s4 ,d$s5 ,d$s6  ) ,
-bout = d$forg_bout,#bout is forg index here
-id = as.integer(as.factor(d$mono_i)),
-N_effects=3,
-popsize= d$pop_month
-)
+# datalist_ssize <- list(
+# N = nrow(d),
+# J = length( unique(d$mono_i) ),
+# K=max(d$TECH_i),
+# tech = d$TECH_i,
+# y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6 ),
+# s = cbind(d$s1 , d$s2 , d$s3 , d$s4 ,d$s5 ,d$s6  ) ,
+# bout = d$forg_bout,#bout is forg index here
+# id = as.integer(as.factor(d$mono_i)),
+# N_effects=3,
+# popsize= d$pop_month
+# )
 
 
 
 parlistI=c( "lambda","phi_i", "dev" , "log_lik" , "alpha")
-parlistF=c("a_id" , "mu", "lambda","phi_i" , "gamma_i" , "fconf_i" , "dev" , "log_lik")
-parlistF2=c("a_id" , "mu", "lambda","phi_i" , "gamma_i" , "fconf_i" , "dev" , "log_lik","beta")
+parlistF=c("a_id" , "mu", "lambda","phi_i" , "gamma_i" , "fconf_i" , "chi_i" , "dev" , "log_lik")
+parlistF2=c("a_id" , "mu", "lambda","phi_i" , "gamma_i" , "fconf_i" , "chi_i" , "dev" , "log_lik","beta")
 
 traceplot(fit_i)
-fit_i = stan(file = 'PN_i.stan', data = datalist_i ,iter = 2000, warmup=1000, chains=2,  pars=parlistI , control=list(adapt_delta=0.99))
-fit_s = stan( file = 'PN_freq_social.stan', data = datalist_s ,iter = 2000, warmup=1000, chains=2,  pars=parlistF , control=list(adapt_delta=0.99))
+
+fit_i = stan(file = 'ewa_i.stan', data = datalist_i ,iter = 2000, warmup=1000, chains=2,  pars=parlistI , control=list(adapt_delta=0.99))
+fit_s = stan( file = 'ewa_social_freq_ema.stan', data = datalist_s ,iter = 200, warmup=100, chains=2, control=list(adapt_delta=0.99))
 write.csv(extract(fit_s) , "post_s_ST.csv")
 
-fit_s_mig = stan( file = 'PN_freq_social_mig.stan', data = datalist_smig ,iter = 2000, warmup=1000, chains=2,  pars=parlistF2 , control=list(adapt_delta=0.99))
-write.csv(extract(fit_s_mig) , "post_s_mig_ST.csv")
+# fit_s_mig = stan( file = 'PN_freq_social_mig.stan', data = datalist_smig ,iter = 2000, warmup=1000, chains=2,  pars=parlistF2 , control=list(adapt_delta=0.99))
+# write.csv(extract(fit_s_mig) , "post_s_mig_ST.csv")
 
-fit_s_fizz = stan( file = 'PN_freq_social_mig.stan', data = datalist_sfizz ,iter = 2000, warmup=1000, chains=2,  pars=parlistF2 , control=list(adapt_delta=0.99))
-write.csv(extract(fit_s_fizz) , "post_s_fizz_ST.csv")
+# fit_s_fizz = stan( file = 'PN_freq_social_mig.stan', data = datalist_sfizz ,iter = 2000, warmup=1000, chains=2,  pars=parlistF2 , control=list(adapt_delta=0.99))
+# write.csv(extract(fit_s_fizz) , "post_s_fizz_ST.csv")
 
-fit_s_popsize = stan( file = 'PN_freq_social_popsize.stan', data = datalist_ssize ,iter = 2000, warmup=1000, chains=2,  pars=parlistF2 , control=list(adapt_delta=0.99))
-write.csv(extract(fit_s_popsize) , "post_s_popsize_ST.csv")
+# fit_s_popsize = stan( file = 'PN_freq_social_popsize.stan', data = datalist_ssize ,iter = 2000, warmup=1000, chains=2,  pars=parlistF2 , control=list(adapt_delta=0.99))
+# write.csv(extract(fit_s_popsize) , "post_s_popsize_ST.csv")
 
-#Graphs of posterior
-postmig <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_mig_ST.csv")
-postfizz <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_fizz_ST.csv")
-posts <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_ST.csv")
-postpop <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_popsize_ST.csv")
+# #Graphs of posterior
+# postmig <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_mig_ST.csv")
+# postfizz <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_fizz_ST.csv")
+# posts <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_ST.csv")
+# postpop <- read.csv("~/Dropbox/Lomas Barbudal/Sloanea Data/post_s_popsize_ST.csv")
 
-##main effects only
+# ##main effects only
 
 dens(logistic(post$mu.1) , main=expression(paste(phi)) , xlim=c(0,1) , xlab="weight given to new experience" , col="white")##phi
 abline(v=median(logistic(post$mu.1)) ) 

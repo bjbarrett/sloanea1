@@ -238,6 +238,9 @@ d$rav <- ifelse(d$rav=="OWKY? " , "OW,KY" , d$rav)
 d$rav <- ifelse(d$rav=="ON VIDEO" , "" , d$rav)
 d$rav <- ifelse(d$rav=="N (EI LOOKS AT FRUITS)" , "" , d$rav)
 d$rav <- ifelse(d$rav=="VIDEO" , "" , d$rav)
+sort(unique(d$rav))
+d$rav <- gsub(" ", "", d$rav, fixed = TRUE)
+d$rav  <- ifelse( grepl('^[A-Za-z]+$', d$rav)==TRUE & stri_length(d$rav)==4, gsub("(\\D\\D)(\\D\\D)", "\\1,\\2", d$rav) , d$rav) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
 
 
 
@@ -450,24 +453,24 @@ d$post_fl_fizz <- ifelse(d$grouptoday %in% c("aa","fl") & d$natal=="aa" & d$yob<
 d$post_fizz <-  d$post_rf_fizz + d$post_mk_fizz  + d$post_fl_fizz
 
 write.csv(d , "ST2003to2012_Oct3_2018.csv")
-unique(d$mono[d$nonnatal==1])
-unique(d$mono[d$postmig==1])
+# unique(d$mono[d$nonnatal==1])
+# unique(d$mono[d$postmig==1])
 
-col_index <- c("violet" ,"red" , "orange" , "gold" , "green" , "blue" , "slateblue" , "black" )
-tech_index <- c(1:8)
-tech_list <- sort(unique(d$TECH))
+# col_index <- c("violet" ,"red" , "orange" , "gold" , "green" , "blue" , "slateblue" , "black" )
+# tech_index <- c(1:8)
+# tech_list <- sort(unique(d$TECH))
 
-plot(mono_i ~ fruit_index, data= subset(d , mono %in% c("SK" , "HA" , "GM" , "SR" , "HC" , "GT" , "DK" , "DS") ) , xlim=c(12700,14770) , ylim=c(0,200) , pch=19 , col=col_index[d$TECH_i])
-plot(mono_i ~ forg_bout, data= subset(d , mono %in% c("SK" , "HA" , "GM" , "SR" , "HC" , "GT" , "DK" , "DS") ) , ylim=c(0,200) , pch=19 , col=col_index[d$TECH_i])
-plot(mono_i ~ forg_bout, data= subset(d , mono %in% c("SK" , "HA" , "GM" , "SR" , "HC" , "GT" , "DK" , "DS") ) , ylim=c(0,250) , pch=19 , col=col_index[d$TECH_i])
-plot(mono_i ~ fruit_index, data= subset(d , grouptoday %in% "ff" ) , ylim=c(0,250) , pch=19 , col=col_index[d$TECH_i])
-plot(mono_i ~ fruit_index, data= subset(d , grouptoday %in% "ff" ) , ylim=c(0,250) , pch=19 , col=col_index[d$TECH_i] , cex=0.5)
-plot(mono_i ~ fruit_index, data= subset(d , grouptoday %in% "rf" ) , ylim=c(0,250) , pch=1 , col="col_index[d$TECH_i]" , cex=0.5)
+# plot(mono_i ~ fruit_index, data= subset(d , mono %in% c("SK" , "HA" , "GM" , "SR" , "HC" , "GT" , "DK" , "DS") ) , xlim=c(12700,14770) , ylim=c(0,200) , pch=19 , col=col_index[d$TECH_i])
+# plot(mono_i ~ forg_bout, data= subset(d , mono %in% c("SK" , "HA" , "GM" , "SR" , "HC" , "GT" , "DK" , "DS") ) , ylim=c(0,200) , pch=19 , col=col_index[d$TECH_i])
+# plot(mono_i ~ forg_bout, data= subset(d , mono %in% c("SK" , "HA" , "GM" , "SR" , "HC" , "GT" , "DK" , "DS") ) , ylim=c(0,250) , pch=19 , col=col_index[d$TECH_i])
+# plot(mono_i ~ fruit_index, data= subset(d , grouptoday %in% "ff" ) , ylim=c(0,250) , pch=19 , col=col_index[d$TECH_i])
+# plot(mono_i ~ fruit_index, data= subset(d , grouptoday %in% "ff" ) , ylim=c(0,250) , pch=19 , col=col_index[d$TECH_i] , cex=0.5)
+# plot(mono_i ~ fruit_index, data= subset(d , grouptoday %in% "rf" ) , ylim=c(0,250) , pch=1 , col="col_index[d$TECH_i]" , cex=0.5)
 
-plot(mono_i ~ forg_bout, data= subset(d , mono %in% "SK") , ylim=c(0,300) , pch=19 , col="white")
-for (i in 1:nrow(subset(d , mono %in% "SK"))){
-points(mono_i[i] ~ forg_bout[i], data= subset(d , mono %in% "SK") , ylim=c(0,300) , pch=19 , col=col_index[subset(d , mono %in% "SK")[i,] ] , cex=0.5) }
-d$TECH_i$subset(d , mono %in% "SK")[i,]
+# plot(mono_i ~ forg_bout, data= subset(d , mono %in% "SK") , ylim=c(0,300) , pch=19 , col="white")
+# for (i in 1:nrow(subset(d , mono %in% "SK"))){
+# points(mono_i[i] ~ forg_bout[i], data= subset(d , mono %in% "SK") , ylim=c(0,300) , pch=19 , col=col_index[subset(d , mono %in% "SK")[i,] ] , cex=0.5) }
+# d$TECH_i$subset(d , mono %in% "SK")[i,]
 
 
 
