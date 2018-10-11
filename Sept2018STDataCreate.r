@@ -195,6 +195,42 @@ d$BB <- gsub("(P)", "", d$BB, fixed = TRUE)
 
 sort(unique(d$BB))
 
+d$CC <- toupper(as.character(d$cc))
+d$CC <- gsub("?", "", d$CC, fixed = TRUE)
+d$CC <- gsub(" ", "", d$CC, fixed = TRUE)
+d$CC <- gsub(".", ",", d$CC, fixed = TRUE)
+d$CC <- gsub("(P)", "", d$CC, fixed = TRUE)
+d$CC <- gsub(",,", ",", d$CC, fixed = TRUE)
+
+d$CC  <- ifelse( grepl('^[A-Za-z]+$', d$CC)==TRUE & stri_length(d$CC)==12, gsub("(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3,\\4,\\5\\6", d$CC) , d$CC) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$CC  <- ifelse( grepl('^[A-Za-z]+$', d$CC)==TRUE & stri_length(d$CC)==10, gsub("(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3,\\4,\\5", d$CC) , d$CC) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$CC  <- ifelse( grepl('^[A-Za-z]+$', d$CC)==TRUE & stri_length(d$CC)==8, gsub("(\\D\\D)(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3,\\4", d$CC) , d$CC) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$CC  <- ifelse( grepl('^[A-Za-z]+$', d$CC)==TRUE & stri_length(d$CC)==6, gsub("(\\D\\D)(\\D\\D)(\\D\\D)", "\\1,\\2,\\3", d$CC) , d$CC) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$CC  <- ifelse( grepl('^[A-Za-z]+$', d$CC)==TRUE & stri_length(d$CC)==4, gsub("(\\D\\D)(\\D\\D)", "\\1,\\2", d$CC) , d$CC) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+d$CC <- ifelse(d$CC=="CB(ONLY,FOR,INGEST)" , "CB" , d$CC)
+d$CC <- ifelse(d$CC=="LX(ONLY,FOR,INGEST)" , "LX" , d$CC)
+d$CC <- ifelse(d$CC=="OP(20)" , "" , d$CC)
+d$CC <- ifelse(d$CC=="MO(RANTHROUGH)" , "MO" , d$CC)
+d$CC <- ifelse(d$CC=="OP(20)" , "" , d$CC)
+d$CC <- ifelse(d$CC=="TU,MI(LEFT5AFTERFIRSTSCRUB)" , "TU,MI" , d$CC)
+d$CC <- ifelse(d$CC=="VDCK,(15)" , "" , d$CC)
+d$CC <- ifelse(d$CC=="TU(B/F,P)" , "TU" , d$CC)
+d$CC <- ifelse(d$CC=="CM,KN,CL,CP,FZCD", "CM,KN,CL,CP,FZ,CD" , d$CC)
+d$CC <- ifelse(d$CC=="DUMNOWKYTOMMMZ", "DU,MN,OW,KY,TO,MM,MZ" , d$CC)
+d$CC <- ifelse(d$CC=="MMMZMN,", "MM,MZ,MN" , d$CC)
+d$CC <- ifelse(d$CC=="MULTIXXES", "" , d$CC)
+d$CC <- ifelse(d$CC=="MW,FZ,DR,CD,KNST", "MW,FZ,DR,CD,KN,ST" , d$CC)
+d$CC <- ifelse(d$CC=="RO,ANDX1,X2", "RO" , d$CC)
+d$CC <- ifelse(d$CC=="TO,DU,KYEO,DD,DT,DA", "TO,DU,KY,EO,DD,DT,DA" , d$CC)
+d$CC <- ifelse(d$CC=="TUX2EEEINP", "TU,X2,EE,EI,NP" , d$CC)
+d$CC <- ifelse(d$CC=="VUFYTODDDDT", "VU,FY,TO,DD,DT" , d$CC)
+d$CC <- ifelse(d$CC=="YA,CKEODU", "YA,CK,EO,DU" , d$CC)
+d$CC <- ifelse(d$CC=="EI,(30)", "" , d$CC)
+
+
+sort(unique(d$CC))
+
+
 ###rav
 d$rav_orig <- d$rav
 d$rav <- as.character(d$ravxx)
@@ -241,6 +277,7 @@ d$rav <- ifelse(d$rav=="VIDEO" , "" , d$rav)
 sort(unique(d$rav))
 d$rav <- gsub(" ", "", d$rav, fixed = TRUE)
 d$rav  <- ifelse( grepl('^[A-Za-z]+$', d$rav)==TRUE & stri_length(d$rav)==4, gsub("(\\D\\D)(\\D\\D)", "\\1,\\2", d$rav) , d$rav) #PUTS COMMAS BETWEEN VALUES OF STINGS WITH ONLY LETTERS AND LENGTH 4
+
 
 
 
@@ -340,7 +377,7 @@ dna <- d_all[is.na(d_all$TECH),]
 d <- d[!is.na(d$TECH),]
 #########extract techniues to recode by hand
 for (i in 1:nrow(d)){
-d$timedate[i] <- ifelse(is.na(d$timedate[i])==TRUE , d$timedate[i-1] + 0.00002 , d$timedate[i] )
+	d$timedate[i] <- ifelse(is.na(d$timedate[i])==TRUE , d$timedate[i-1] + 0.00002 , d$timedate[i] )
 }
 
 d <- d[order(d$timedate),] #order by timedate http://www.statmethods.net/management/sorting.html
@@ -378,7 +415,7 @@ names(d)[names(d) == 'grouptoday.y'] <- 'grouptoday'
 
 ####checkgrouptoday
 d <- d[order(d$timedate),]
-d <- subset(d , select=c(date,timedate , mono , TECH , grouptoday , natal , resident.group, mom , obs , tech.parse , switch , rav, fav , AA , BB , name, male, yob, dob ))
+d <- subset(d , select=c(date,timedate , mono , TECH , grouptoday , natal , resident.group, mom , obs , tech.parse , switch , rav, fav , AA , BB , CC,  name, male, yob, dob ))
 
 
 ###WHEN NEW DATA GETS ADDED USE THIS TO CHECK FOR INCOSISTENCIES#####
@@ -440,7 +477,7 @@ d$mono_i <- as.integer(as.factor(d$mono))
 d$grouptoday_i <- as.integer(as.factor(d$grouptoday))
 
 
-dstore <- d
+#dstore <- d
 d$nonnatal <- ifelse(d$natal!=d$grouptoday & d$male==1 , 1 , 0)
 sort(unique(d$mono[d$nonnatal==1]))
 '%!in%' <- function(x,y)!('%in%'(x,y))
