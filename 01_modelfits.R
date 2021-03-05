@@ -1,9 +1,9 @@
-ssh -l brendan_barrett ecocn03
-ssh -l brendan_barrett ecocn04
-R
+# ssh -l brendan_barrett ecocn03
+# ssh -l brendan_barrett ecocn04
+# R
 library(rethinking)
 library(rstan)
-setwd("~/Dropbox/sloanea/")
+#setwd("~/Dropbox/sloanea/")
 #d <- read.csv("~/Dropbox/sloanea/ST_28_aabbrav_9Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
 df <- read.csv("ST_28_aabbccrav_11Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
 d <- df
@@ -19,7 +19,8 @@ d <- df
 # d_long <- d
 # d<- d[1:2000,]
 
-tmux a -t 0
+# tmux a -t 0
+
 #monkeys must have at least 10 observations to be analyzed
 # d$max_bouts <- 0
 # for(r in 1:nrow(d)){
@@ -240,31 +241,25 @@ datalist_kin_slopes <- list(
 
 datalist_kin_slopes$q <- datalist_kin_slopes$q / max(datalist_kin_slopes$q)
 
+###list of pars to include
 parlistF=c("a_id" , "mu", "lambda", "sigma" , "Rho", "phi_i" , "gamma_i" , "fconf_i" , "dev" , "log_lik","Rho")
 parlistQ=c("a_id" , "mu", "lambda" , "dev" , "log_lik" , "sigma" , "Rho")
 parlistQage=c("a_id" , "mu", "lambda" , "dev" , "log_lik" , "sigma" , "Rho" )
 parlistQpop=c("a_id" , "mu", "lambda" , "dev" , "log_lik" , "sigma" , "Rho" , "b_p")
-
-fit_s = stan( file = 'ewa_freq_social.stan', data = datalist_s ,iter = 1000, warmup=500, chains=2, cores= 2, pars=parlistF, control=list(adapt_delta=0.98), init="0" , refresh = 1)
+#no age or sex predictors
+fit_s = stan( file = 'ewa_freq_social.stan', data = datalist_s ,iter = 1000, warmup=500, chains=4, cores= 4, pars=parlistF, control=list(adapt_delta=0.98), init="0" , refresh = 1)
 fit_coho = stan( file = 'ewa_cue_social.stan', data = datalist_coho ,iter = 1000, warmup=500, chains=2, cores= 2, pars=parlistQ, control=list(adapt_delta=0.98))
 fit_age = stan( file = 'ewa_cue_social.stan', data = datalist_age ,iter = 1000, warmup=500, chains=2, cores= 2, pars=parlistQ, control=list(adapt_delta=0.98))
 fit_kin = stan( file = 'ewa_cue_social.stan', data = datalist_kin ,iter = 1000, warmup=500, chains=2, cores= 2, pars=parlistQ, control=list(adapt_delta=0.98))
 fit_global = stan( file = 'ewa_global_social.stan', data = datalist_global ,iter = 1000, warmup=500, chains=2, cores= 2, pars=parlistQ, control=list(adapt_delta=0.98))
-fit_global_age_slopes = stan( file = 'ewa_global_social_age_slopes.stan', data = datalist_global_slopes ,iter = 1000, warmup=600, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 1)
 
-fit_s = stan( file = 'ewa_freq_social.stan', data = datalist_s ,iter = 1000, warmup=500, chains=3, cores= 3, pars=parlistF, control=list(adapt_delta=0.99))
-fit_coho = stan( file = 'ewa_cue_social.stan', data = datalist_coho ,iter = 1000, warmup=500, chains=3, cores= 3, pars=parlistQ, control=list(adapt_delta=0.99))
-fit_age = stan( file = 'ewa_cue_social.stan', data = datalist_age ,iter = 1000, warmup=500, chains=3, cores= 3, pars=parlistQ, control=list(adapt_delta=0.99))
-fit_kin = stan( file = 'ewa_cue_social.stan', data = datalist_kin ,iter = 1000, warmup=500, chains=3, cores= 3, pars=parlistQ, control=list(adapt_delta=0.99))
-fit_global = stan( file = 'ewa_global_social.stan', data = datalist_global ,iter = 1000, warmup=500, chains=3, cores= 3, pars=parlistQ, control=list(adapt_delta=0.99))
-
-#fit_global_age = stan( file = 'ewa_global_social_age.stan', data = datalist_global ,iter = 1000, warmup=500, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99))
 ###varying slopes for age
-fit_global_age_slopes2 = stan( file = 'ewa_global_social_age_slopes.stan', data = datalist_global_slopes ,iter = 1400, warmup=700, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 50)
+fit_global_age_slopes = stan( file = 'ewa_global_social_age_slopes.stan', data = datalist_global_slopes ,iter = 1000, warmup=600, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 1)
 fit_coho_age_slopes = stan( file = 'ewa_cue_social_age_slopes.stan', data = datalist_coho_slopes ,iter = 1000, warmup=600, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 1)
 fit_age_age_slopes = stan( file = 'ewa_cue_social_age_slopes.stan', data = datalist_age_slopes ,iter = 1000, warmup=600, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 1)
 fit_kin_age_slopes = stan( file = 'ewa_cue_social_age_slopes.stan', data = datalist_kin_slopes ,iter = 1000, warmup=600, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 1)
 fit_freq_age_slopes = stan( file = 'ewa_freq_social_age_slopes.stan', data = datalist_kin_slopes ,iter = 1000, warmup=600, chains=3, cores= 3, pars=parlistQage, control=list(adapt_delta=0.99) , init="0" , refresh = 1)
+
 #####popsize
 parlistQpop=c("a_id" , "mu", "lambda" , "dev" , "log_lik" , "sigma" , "Rho" , "b_p")
 fit_global_pop = stan( file = 'ewa_global_social_popsize.stan', data = datalist_global ,iter = 1200, warmup=600, chains=3, cores= 3, pars=parlistQpop , refresh = 50, control=list(adapt_delta=0.99))
@@ -281,3 +276,83 @@ save(d, fit_global_age_slopes , fit_coho_age_slopes , fit_age_age_slopes , fit_k
 
 save(d,fit_global_age_male_slopes, file="fits_aabb_28days_13Octmale.RData")
 
+
+
+######lets try reparameterized models based off of vervet paper
+#################################
+##########slope models###########
+#################################
+
+d$sex_index <- d$male + 1
+d$age_index <- d$adult + 1
+d$group_index <- as.integer(d$group)
+
+datalist_i <- list(
+  N = nrow(d),                                  #length of dataset
+  J = length( unique(d$ID_actor_index) ),       #number of individuals
+  K = max(d$technique_index),                   #number of processing techniques
+  tech = d$technique_index,                     #technique index
+  y = cbind( d$y1 , d$y2 , d$y3 ),              #individual payoff at timestep (1 if succeed, 0 is fail)
+  bout = d$forg_bout,                          #processing bout unique to individual J
+  id = d$ID_actor_index ,                      #individual ID
+  sex_index=d$sex_index,
+  age_index=d$age_index,
+  group_index=d$group_index,
+  N_effects=2                               #number of parameters to estimates
+)
+
+##single strategy social learning
+datalist_s <- list(
+  N = nrow(d),                            #length of dataset
+  J = length( unique(d$ID_actor_index) ),  #number of individuals
+  K = max(d$technique_index),         #number of processing techniques
+  tech = d$technique_index,           #technique index
+  y = cbind( d$y1 , d$y2 , d$y3 ),    #individual payoff at timestep (1 if succeed, 0 is fail)
+  s = cbind(d$freq1 , d$freq2 , d$freq3 ), #observed counts of all K techniques to individual J (frequency-dependence)
+  q = cbind(d$pay1 , d$pay2 , d$pay3 ),
+  bout = d$forg_bout,#bout is forg index  unique to individual J
+  id = d$ID_actor_index ,                                           #individual ID
+  sex_index=d$sex_index,
+  age_index=d$age_index,
+  group_index=d$group_index,
+  N_effects=4                                                                        #number of parameters to estimates
+)
+
+datalist_s$q <- datalist_s$q / max(datalist_s$q)
+datalist_s$s <- datalist_s$s/ max(datalist_s$s)
+
+
+##global model
+datalist_g <- list(
+  N = nrow(d),                            #length of dataset
+  J = length( unique(d$ID_actor_index) ),  #number of individuals
+  K = max(d$technique_index),         #number of processing techniques
+  tech = d$technique_index,           #technique index
+  y = cbind( d$y1 , d$y2 , d$y3 ),    #individual payoff at timestep (1 if succeed, 0 is fail)
+  s = cbind( d$freq1 , d$freq2 , d$freq3 ), #observed counts of all K techniques to individual J (frequency-dependence)
+  f = cbind( d$fem1 , d$fem2 , d$fem3 ),
+  k = cbind( d$kin1 , d$kin2 , d$kin3 ),
+  p = cbind( d$pay1 , d$pay2 , d$pay3 ),
+  r = cbind( d$rank1 , d$rank2 , d$rank3 ),
+  x = cbind( d$sex1 , d$sex2 , d$sex3 ),
+  bout = d$forg_bout, #bout is forg index  unique to individual J
+  id = d$ID_actor_index ,                                           #individual ID
+  sex_index=d$sex_index,
+  age_index=d$age_index,
+  group_index=d$group_index,
+  N_effects=9                                                                        #number of parameters to estimates
+)
+
+datalist_g$s <- datalist_g$s/ max(datalist_g$s)
+datalist_g$f <- datalist_g$f / max(datalist_g$f)
+datalist_g$k <- datalist_g$k/ max(datalist_g$k)
+datalist_g$p <- datalist_g$p/ max(datalist_g$p)
+datalist_g$r <- datalist_g$r/ max(datalist_g$r)
+datalist_g$x <- datalist_g$x/ max(datalist_g$x)
+
+###########################################model fits###########################################
+parlist <- c("A" ,"G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
+
+fit_i = stan( file = 'ewa_individual.stan', data = datalist_i ,iter = 6000, warmup=3000, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=100)
+fit_pay = stan( file = 'ewa_cue.stan', data = datalist_s ,iter = 6000, warmup=3000, chains=4, cores=4, control=list(adapt_delta=0.99) , pars=parlist, refresh=100 , init=0)
+fit_freq = stan( file = 'ewa_freq.stan', data = datalist_s ,iter = 6000, warmup=3000, chains=4, cores=4, control=list(adapt_delta=0.9999 ,  max_treedepth = 15) , pars=c("A" ,"S" , "I", "sigma", "Rho" , "log_lik" ), refresh=100 , init=0)
