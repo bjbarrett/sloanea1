@@ -282,40 +282,61 @@ save(d,fit_global_age_male_slopes, file="fits_aabb_28days_13Octmale.RData")
 #################################
 ##########slope models###########
 #################################
+library(rethinking)
+library(rstan)
+#setwd("~/Dropbox/sloanea/")
+#d <- read.csv("~/Dropbox/sloanea/ST_28_aabbrav_9Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
+df <- read.csv("ST_28_aabbccrav_11Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
+d <- df
 
-d$sex_index <- d$male + 1
-d$age_index <- d$adult + 1
-d$group_index <- as.integer(d$group)
+d$logage <- log(d$age)
+d$logage_s <- (d$logage -mean(d$logage))/sd(d$logage)
+d$logagecont <- log(d$agecont)
+d$logagecont_s <- (d$logagecont -mean(d$logagecont))/sd(d$logagecont)
+d$technique_index <- d$TECH_i
+d$technique <- d$TECH
+d$sex_index <- d$male + 1 #males 2, female 1
+d$mono_index <- as.integer(as.factor(d$mono))
 
+##########individual learning alone############
 datalist_i <- list(
-  N = nrow(d),                                  #length of dataset
-  J = length( unique(d$ID_actor_index) ),       #number of individuals
-  K = max(d$technique_index),                   #number of processing techniques
+  n_obs = nrow(d) ,                                  #length of dataset
+  n_id = length( unique(d$mono_index) ) ,       #number of individuals
+  n_behav = max(d$technique_index) ,                   #number of processing techniques
+  n_group = max(d$grouptoday_i) ,
   tech = d$technique_index,                     #technique index
-  y = cbind( d$y1 , d$y2 , d$y3 ),              #individual payoff at timestep (1 if succeed, 0 is fail)
-  bout = d$forg_bout,                          #processing bout unique to individual J
-  id = d$ID_actor_index ,                      #individual ID
-  sex_index=d$sex_index,
-  age_index=d$age_index,
-  group_index=d$group_index,
-  N_effects=2                               #number of parameters to estimates
+  y = cbind( d$y1 , d$y2 , d$y3 ,d$y4 , d$y5 , d$y6 ) ,              #individual payoff at timestep (1 if succeed, 0 is fail)
+  bout = d$forg_bout ,                          #processing bout unique to individual J
+  id = d$mono_index ,                      #individual ID
+  sex_index=d$sex_index ,
+  group_index=d$grouptoday_i ,
+  n_effects=2                               #number of parameters to estimates
 )
+
+parlist <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
+
+fit_i2 = stan( file = 'ewa_individual_verv_sex.stan', data = datalist_i ,iter = 100, warmup=50, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=10)
+
+precis(fit_i , depth=2)
+post <- extract.samples(fit_i)
+##############age-bias############
 
 ##single strategy social learning
 datalist_s <- list(
-  N = nrow(d),                            #length of dataset
-  J = length( unique(d$ID_actor_index) ),  #number of individuals
-  K = max(d$technique_index),         #number of processing techniques
+  n_obs = nrow(d),                                  #length of dataset
+  n_id = length( unique(d$mono_index) ),       #number of individuals
+  n_behav = max(d$technique_index),                   #number of processing techniques
+  n_group = max(d$grouptoday_i),
   tech = d$technique_index,           #technique index
-  y = cbind( d$y1 , d$y2 , d$y3 ),    #individual payoff at timestep (1 if succeed, 0 is fail)
-  s = cbind(d$freq1 , d$freq2 , d$freq3 ), #observed counts of all K techniques to individual J (frequency-dependence)
-  q = cbind(d$pay1 , d$pay2 , d$pay3 ),
+  y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6  ),    #individual payoff at timestep (1 if succeed, 0 is fail)
+  s = cbind(d$freq1 , d$freq2 , d$freq3 , d$freq4 , d$freq5 , d$freq6 ), #observed counts of all K techniques to individual J (frequency-dependence)
+  q = cbind(d$pay1 , d$pay2 , d$pay3 ),##############EXAMINE
   bout = d$forg_bout,#bout is forg index  unique to individual J
   id = d$ID_actor_index ,                                           #individual ID
   sex_index=d$sex_index,
   age_index=d$age_index,
   group_index=d$group_index,
-  N_effects=4                                                                        #number of parameters to estimates
+  n_effects=4                                                                        #number of parameters to estimates
 )
 
 datalist_s$q <- datalist_s$q / max(datalist_s$q)
