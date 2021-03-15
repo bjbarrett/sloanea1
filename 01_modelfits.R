@@ -1,3 +1,78 @@
+#####lets try reparameterized models based off of vervet paper
+
+#################################
+##########slope models###########
+#################################
+library(rethinking)
+library(rstan)
+df <- read.csv("ST_28_aabbccrav_11Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
+d <- df
+
+#monkeys must have at least max_num_bouts observations to be analyzed
+max_num_bouts <- 10
+d$max_bouts <- 0
+for(r in 1:nrow(d)){
+  d$max_bouts[r] <- max(d$forg_bout[d$mono_index==d$mono_index[r]])
+}
+
+d <- d[d$max_bouts>9,]
+d$logage <- log(d$age)
+d$logage_s <- (d$logage -mean(d$logage))/sd(d$logage)
+d$logagecont <- log(d$agecont)
+d$logagecont_s <- (d$logagecont -mean(d$logagecont))/sd(d$logagecont)
+d$technique_index <- d$TECH_i
+d$technique <- d$TECH
+d$sex_index <- d$male + 1 #males 2, female 1
+d$mono_index <- as.integer(as.factor(d$mono))
+
+##########individual learning alone############
+datalist_i <- list(
+  n_obs = nrow(d) ,                                  #length of dataset
+  n_id = length( unique(d$mono_index) ) ,       #number of individuals
+  n_behav = max(d$technique_index) ,                   #number of processing techniques
+  n_group = max(d$grouptoday_i) ,
+  tech = d$technique_index,                     #technique index
+  y = cbind( d$y1 , d$y2 , d$y3 ,d$y4 , d$y5 , d$y6 ) ,              #individual payoff at timestep (1 if succeed, 0 is fail)
+  bout = d$forg_bout ,                          #processing bout unique to individual J
+  id = d$mono_index ,                      #individual ID
+  sex_index=d$sex_index ,
+  group_index=d$grouptoday_i ,
+  logage = d$logage_s ,
+  n_effects=2                               #number of parameters to estimates
+)
+
+parlist <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
+fit_i = stan( file = 'stancode_sex/ewa_individual_verv_sex.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=10 , seed=666)
+parlist_2 <- c("G" , "S" , "I", "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
+fit_i2 = stan( file = 'stancode_age_sex/ewa_individual_verv_sex_age.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_2, refresh=10 , seed=666)
+parlist_3 <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "phi" , "lambda" , "log_lik" ,"PrPreds" )
+fit_i3 = stan( file = 'stancode_sex/ewa_individual_verv_sex_lphigq.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_3, refresh=10 , seed=666)
+parlist_4 <- c("phi" , "lambda" , "G" , "S" , "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g"  ,"PrPreds" ) # i deleted and log lik
+fit_i4 = stan( file = 'stancode_age_sex/ewa_individual_verv_sex_age.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_4, refresh=10 , seed=666)
+
+plot(precis(fit_i3 , pars='phi' , depth=2))
+
+str(fit_i3)
+post <- extract(fit_i3)
+post2 <- extract.samples(fit_i3)
+list(post$phi)
+plot(precis(apply(post$phi , 2, list) ))
+precis(list(post$phi))
+precis(fit_i2 , pars='bA' , depth=3)
+precis(fit_i , depth=3 , pars='sigma_i') 
+precis(fit_i , depth=3 , pars='S') 
+plot(precis(fit_i , depth=3 , pars='I') )
+post <- extract.samples(fit_i)
+str(post)
+plot(precis(post$I[,,1]) )
+apply(post$I[,,1] , 2 , precis)
+post$I[,,1]
+plambda_male <- list
+precis(post$I[,,1] , depth=3)
+
+
+
+#####old stuff below################33
 # ssh -l brendan_barrett ecocn03
 # ssh -l brendan_barrett ecocn04
 # R
@@ -278,122 +353,3 @@ save(d,fit_global_age_male_slopes, file="fits_aabb_28days_13Octmale.RData")
 
 
 
-######lets try reparameterized models based off of vervet paper
-
-#################################
-##########slope models###########
-#################################
-library(rethinking)
-library(rstan)
-#setwd("~/Dropbox/sloanea/")
-#d <- read.csv("~/Dropbox/sloanea/ST_28_aabbrav_9Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
-df <- read.csv("ST_28_aabbccrav_11Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
-d <- df
-
-
-#monkeys must have at least max_num_bouts observations to be analyzed
-max_num_bouts <- 10
-d$max_bouts <- 0
-for(r in 1:nrow(d)){
-  d$max_bouts[r] <- max(d$forg_bout[d$mono_index==d$mono_index[r]])
-}
-
-d <- d[d$max_bouts>9,]
-d$logage <- log(d$age)
-d$logage_s <- (d$logage -mean(d$logage))/sd(d$logage)
-d$logagecont <- log(d$agecont)
-d$logagecont_s <- (d$logagecont -mean(d$logagecont))/sd(d$logagecont)
-d$technique_index <- d$TECH_i
-d$technique <- d$TECH
-d$sex_index <- d$male + 1 #males 2, female 1
-d$mono_index <- as.integer(as.factor(d$mono))
-
-##########individual learning alone############
-datalist_i <- list(
-  n_obs = nrow(d) ,                                  #length of dataset
-  n_id = length( unique(d$mono_index) ) ,       #number of individuals
-  n_behav = max(d$technique_index) ,                   #number of processing techniques
-  n_group = max(d$grouptoday_i) ,
-  tech = d$technique_index,                     #technique index
-  y = cbind( d$y1 , d$y2 , d$y3 ,d$y4 , d$y5 , d$y6 ) ,              #individual payoff at timestep (1 if succeed, 0 is fail)
-  bout = d$forg_bout ,                          #processing bout unique to individual J
-  id = d$mono_index ,                      #individual ID
-  sex_index=d$sex_index ,
-  group_index=d$grouptoday_i ,
-  logage = d$logage_s ,
-  n_effects=2                               #number of parameters to estimates
-)
-
-parlist <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
-fit_i = stan( file = 'ewa_individual_verv_sex.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=10 , seed=666)
-parlist_2 <- c("G" , "S" , "I", "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
-fit_i2 = stan( file = 'stancode_age_sex/ewa_individual_verv_sex_age.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_2, refresh=10 , seed=666)
-
-precis(fit_i , depth=3 , pars='sigma_i') 
-precis(fit_i , depth=3 , pars='S') 
-plot(precis(fit_i , depth=3 , pars='I') )
-post <- extract.samples(fit_i)
-str(post)
-plot(precis(post$I[,,1]) )
-apply(post$I[,,1] , 2 , precis)
-post$I[,,1]
-plambda_male <- list
-precis(post$I[,,1] , depth=3)
-##############age-bias############
-
-##single strategy social learning
-datalist_s <- list(
-  n_obs = nrow(d),                                  #length of dataset
-  n_id = length( unique(d$mono_index) ),       #number of individuals
-  n_behav = max(d$technique_index),                   #number of processing techniques
-  n_group = max(d$grouptoday_i),
-  tech = d$technique_index,           #technique index
-  y = cbind( d$y1 , d$y2 , d$y3 , d$y4 , d$y5 , d$y6  ),    #individual payoff at timestep (1 if succeed, 0 is fail)
-  s = cbind(d$freq1 , d$freq2 , d$freq3 , d$freq4 , d$freq5 , d$freq6 ), #observed counts of all K techniques to individual J (frequency-dependence)
-  q = cbind(d$pay1 , d$pay2 , d$pay3 ),##############EXAMINE
-  bout = d$forg_bout,#bout is forg index  unique to individual J
-  id = d$ID_actor_index ,                                           #individual ID
-  sex_index=d$sex_index,
-  age_index=d$age_index,
-  group_index=d$group_index,
-  n_effects=4                                                                        #number of parameters to estimates
-)
-
-datalist_s$q <- datalist_s$q / max(datalist_s$q)
-datalist_s$s <- datalist_s$s/ max(datalist_s$s)
-
-
-##global model
-datalist_g <- list(
-  N = nrow(d),                            #length of dataset
-  J = length( unique(d$ID_actor_index) ),  #number of individuals
-  K = max(d$technique_index),         #number of processing techniques
-  tech = d$technique_index,           #technique index
-  y = cbind( d$y1 , d$y2 , d$y3 ),    #individual payoff at timestep (1 if succeed, 0 is fail)
-  s = cbind( d$freq1 , d$freq2 , d$freq3 ), #observed counts of all K techniques to individual J (frequency-dependence)
-  f = cbind( d$fem1 , d$fem2 , d$fem3 ),
-  k = cbind( d$kin1 , d$kin2 , d$kin3 ),
-  p = cbind( d$pay1 , d$pay2 , d$pay3 ),
-  r = cbind( d$rank1 , d$rank2 , d$rank3 ),
-  x = cbind( d$sex1 , d$sex2 , d$sex3 ),
-  bout = d$forg_bout, #bout is forg index  unique to individual J
-  id = d$ID_actor_index ,                                           #individual ID
-  sex_index=d$sex_index,
-  age_index=d$age_index,
-  group_index=d$group_index,
-  N_effects=9                                                                        #number of parameters to estimates
-)
-
-datalist_g$s <- datalist_g$s/ max(datalist_g$s)
-datalist_g$f <- datalist_g$f / max(datalist_g$f)
-datalist_g$k <- datalist_g$k/ max(datalist_g$k)
-datalist_g$p <- datalist_g$p/ max(datalist_g$p)
-datalist_g$r <- datalist_g$r/ max(datalist_g$r)
-datalist_g$x <- datalist_g$x/ max(datalist_g$x)
-
-###########################################model fits###########################################
-parlist <- c("A" ,"G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
-
-fit_i = stan( file = 'ewa_individual.stan', data = datalist_i ,iter = 6000, warmup=3000, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=100)
-fit_pay = stan( file = 'ewa_cue.stan', data = datalist_s ,iter = 6000, warmup=3000, chains=4, cores=4, control=list(adapt_delta=0.99) , pars=parlist, refresh=100 , init=0)
-fit_freq = stan( file = 'ewa_freq.stan', data = datalist_s ,iter = 6000, warmup=3000, chains=4, cores=4, control=list(adapt_delta=0.9999 ,  max_treedepth = 15) , pars=c("A" ,"S" , "I", "sigma", "Rho" , "log_lik" ), refresh=100 , init=0)
