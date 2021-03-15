@@ -279,6 +279,7 @@ save(d,fit_global_age_male_slopes, file="fits_aabb_28days_13Octmale.RData")
 
 
 ######lets try reparameterized models based off of vervet paper
+
 #################################
 ##########slope models###########
 #################################
@@ -289,6 +290,15 @@ library(rstan)
 df <- read.csv("ST_28_aabbccrav_11Oct2018.csv", na.strings = "" , stringsAsFactors=FALSE) #NA stuff helps with naomi
 d <- df
 
+
+#monkeys must have at least max_num_bouts observations to be analyzed
+max_num_bouts <- 10
+d$max_bouts <- 0
+for(r in 1:nrow(d)){
+  d$max_bouts[r] <- max(d$forg_bout[d$mono_index==d$mono_index[r]])
+}
+
+d <- d[d$max_bouts>9,]
 d$logage <- log(d$age)
 d$logage_s <- (d$logage -mean(d$logage))/sd(d$logage)
 d$logagecont <- log(d$agecont)
@@ -310,15 +320,25 @@ datalist_i <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
+  logage = d$logage_s ,
   n_effects=2                               #number of parameters to estimates
 )
 
 parlist <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
+fit_i = stan( file = 'ewa_individual_verv_sex.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=10 , seed=666)
+parlist_2 <- c("G" , "S" , "I", "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
+fit_i2 = stan( file = 'stancode_age_sex/ewa_individual_verv_sex_age.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_2, refresh=10 , seed=666)
 
-fit_i2 = stan( file = 'ewa_individual_verv_sex.stan', data = datalist_i ,iter = 100, warmup=50, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=10)
-
-precis(fit_i , depth=2)
+precis(fit_i , depth=3 , pars='sigma_i') 
+precis(fit_i , depth=3 , pars='S') 
+plot(precis(fit_i , depth=3 , pars='I') )
 post <- extract.samples(fit_i)
+str(post)
+plot(precis(post$I[,,1]) )
+apply(post$I[,,1] , 2 , precis)
+post$I[,,1]
+plambda_male <- list
+precis(post$I[,,1] , depth=3)
 ##############age-bias############
 
 ##single strategy social learning

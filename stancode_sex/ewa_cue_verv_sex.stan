@@ -64,10 +64,10 @@ model {
         }//j
         if ( bout[i]==1 ) {
             // calculate new individual's parameter values
-            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] ) ;
-            phi= inv_logit(  I[id[i],2] + G[group_index[i],2] + S[2,sex_index[i]]);
-            gamma = inv_logit(I[id[i],3] + G[group_index[i],3] + S[3,sex_index[i]] );
-            beta = I[id[i],4]+ G[group_index[i],4] + S[4,sex_index[i]] ;
+            lambda = exp( I[id[i] , 1] + G[group_index[i] , 1] + S[1 , sex_index[i]] ) ;
+            phi = inv_logit( I[id[i] , 2] + G[group_index[i] , 2] + S[2 , sex_index[i]] );
+            gamma = inv_logit( I[id[i] , 3] + G[group_index[i] , 3] + S[3 , sex_index[i]] );
+            beta = I[id[i] , 4]+ G[group_index[i] , 4] + S[4 , sex_index[i]] ;
         }
         logPrA = lambda*AC[tech[i]] - log_sum_exp( lambda*AC );
         

@@ -3,6 +3,7 @@ int n_behav;              // num behaviors
 int n_obs;              // num observations in dataset
 int n_id;              // num individuals
 int n_group;              // num groups
+real logage[n_obs];              // num groups
 int tech[n_obs];        // techique chosen
 real y[n_obs,n_behav];        // observed personal yields of techs (1/0)
 int bout[n_obs];        // processing bout per individual
@@ -54,13 +55,13 @@ L_Rho_g ~ lkj_corr_cholesky(3);
       } else {
         AC[j]= 0;
       }
-    }//j
-            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] + bA[1,sex_index[i]]*logage ) ;
-            phi= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[2,sex_index[i]] + bA[2,sex_index[i]]*logage );
+    }
+            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] + bA[1,sex_index[i]]*logage[i] ) ;
+            phi= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[2,sex_index[i]] + bA[2,sex_index[i]]*logage[i] );
             logPrA = lambda*AC[tech[i]] - log_sum_exp( lambda*AC );
             target += ( logPrA );
 
-    }//i
+    }
 }
 
 generated quantities {
@@ -74,7 +75,6 @@ generated quantities {
     matrix[n_effects,n_effects] Rho_g;
     matrix[n_obs,n_behav] PrPreds;     
 
-
     Rho_i = multiply_lower_tri_self_transpose(L_Rho_i);
     Rho_g = multiply_lower_tri_self_transpose(L_Rho_g);
 
@@ -87,8 +87,8 @@ for ( i in 1:n_obs ) {
         AC[j]= 0;
       }
     }//j
-            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] + bA[1,sex_index[i]]*logage ) ;
-            phi= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[2,sex_index[i]] + bA[2,sex_index[i]]*logage );
+            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] + bA[1,sex_index[i]]*logage[i] ) ;
+            phi= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[2,sex_index[i]] + bA[2,sex_index[i]]*logage[i] );
             logPrA = lambda*AC[tech[i]] - log_sum_exp( lambda*AC );
             log_lik[i] = logPrA ;
 
