@@ -1,9 +1,10 @@
 data {
 int n_behav;              // num behaviors
 int n_obs;              // num observations in dataset
-int n_id;              // num individuals
+int n_id;                // num individuals
 int n_group;              // num groups
-int tech[n_obs];        // techique chosen
+real logage[n_obs];              // log age of forager
+int tech[n_obs];          // techique observed
 real y[n_obs,n_behav];        // observed personal yields of techs (1/0)
 int bout[n_obs];        // processing bout per individual
 int id[n_obs];          // individual id
@@ -14,6 +15,7 @@ int group_index[n_obs];   //index variable for age; 1 is female 2 is male
 
 parameters {
 matrix[2,n_effects] S;                  //sex  means
+matrix[2,n_effects] bA;                //age params per sex
 vector<lower=0>[n_effects] sigma_i;       // standard deviations of varying effects
 matrix[n_effects , n_id] zed_i;                // individual z-scores for cholesky decomp
 cholesky_factor_corr[n_effects] L_Rho_i;  // correlation matrix
@@ -32,8 +34,8 @@ transformed parameters{
 model {
   vector[n_behav] AC;       // attraction scores
   real logPrA;        // individual learning logPr
-  real phi;           // stickiness parameter to recent experience
-  real lambda;        // sensitivity to attraction scores
+  real phi[n_id];           // stickiness parameter to recent experience
+  real lambda[n_id];        // sensitivity to attraction scores
 
 //priors
 to_vector(S[1,]) ~ normal(1,0.6);
@@ -49,17 +51,17 @@ L_Rho_g ~ lkj_corr_cholesky(3);
   //update attractions
     for ( j in 1:n_behav ) {
       if ( bout[i] > 1 ) {
-        AC[j]= (1-phi)*AC[j] + phi*y[i-1,j];
+        AC[j]= (1-phi[id[i]])*AC[j] + phi[id[i]]*y[i-1,j];
       } else {
         AC[j]= 0;
       }
-    }//j
-            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] ) ;
-            phi= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[2,sex_index[i]] );
-            logPrA = lambda*AC[tech[i]] - log_sum_exp( lambda*AC );
+    }
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + bA[sex_index[i] , 1]*logage[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + bA[sex_index[i] , 2]*logage[i] );
+            logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
             target += ( logPrA );
 
-    }//i
+    }
 }
 
 generated quantities {
@@ -67,12 +69,11 @@ generated quantities {
     vector[n_behav] AC;       // attraction scores
     real logPrA;        // individual learning temp
     vector[n_behav] lin_mod;
-    real lambda;           // stickiness parameter
-    real phi;           // stickiness parameter
+    real lambda[n_id];           // stickiness parameter
+    real phi[n_id];           // stickiness parameter
     matrix[n_effects,n_effects] Rho_i;
     matrix[n_effects,n_effects] Rho_g;
     matrix[n_obs,n_behav] PrPreds;     
-
 
     Rho_i = multiply_lower_tri_self_transpose(L_Rho_i);
     Rho_g = multiply_lower_tri_self_transpose(L_Rho_g);
@@ -81,18 +82,18 @@ for ( i in 1:n_obs ) {
   //update attractions
     for ( j in 1:n_behav ) {
       if ( bout[i] > 1 ) {
-        AC[j]= (1-phi)*AC[j] + phi*y[i-1,j];
+        AC[j]= (1-phi[id[i]])*AC[j] + phi[id[i]]*y[i-1,j];
       } else {
         AC[j]= 0;
       }
     }//j
-            lambda = exp( I[id[i],1] + G[group_index[i],1] + S[1,sex_index[i]] ) ;
-            phi= inv_logit(  I[id[i],2] + G[group_index[i],2] + S[2,sex_index[i]]);
-            logPrA = lambda*AC[tech[i]] - log_sum_exp( lambda*AC );
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + bA[sex_index[i] , 1]*logage[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + bA[sex_index[i] , 2]*logage[i] );
+            logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
             log_lik[i] = logPrA ;
 
             for(j in 1:n_behav){
-            PrPreds[i,j] = exp( lambda*AC[j] - log_sum_exp( lambda*AC) );
+            PrPreds[i,j] = exp( lambda[id[i]]*AC[j] - log_sum_exp( lambda[id[i]]*AC) );
             }
                 }//i
 }

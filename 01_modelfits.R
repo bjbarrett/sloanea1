@@ -41,36 +41,68 @@ datalist_i <- list(
   n_effects=2                               #number of parameters to estimates
 )
 
-parlist <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
-fit_i = stan( file = 'stancode_sex/ewa_individual_verv_sex.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist, refresh=10 , seed=666)
-parlist_2 <- c("G" , "S" , "I", "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" )
-fit_i2 = stan( file = 'stancode_age_sex/ewa_individual_verv_sex_age.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_2, refresh=10 , seed=666)
-parlist_3 <- c("G" , "S" , "I", "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "phi" , "lambda" , "log_lik" ,"PrPreds" )
-fit_i3 = stan( file = 'stancode_sex/ewa_individual_verv_sex_lphigq.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_3, refresh=10 , seed=666)
-parlist_4 <- c("phi" , "lambda" , "G" , "S" , "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g"  ,"PrPreds" ) # i deleted and log lik
-fit_i4 = stan( file = 'stancode_age_sex/ewa_individual_verv_sex_age.stan', data = datalist_i ,iter = 600, warmup=300, chains=4, cores=4, control=list(adapt_delta=0.95) , pars=parlist_4, refresh=10 , seed=666)
 
-plot(precis(fit_i3 , pars='phi' , depth=2))
+parlist_i_s <- c("phi" , "lambda" , "G" , "S" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
+fit_i_s = stan( file = 'stancode_sex/ewa_individual_sex.stan', data = datalist_i , 
+               iter = 60, warmup=30, chains=4, cores=4, 
+               control=list(adapt_delta=0.95) , pars=parlist_i_s, refresh=10 , seed=666)
 
-str(fit_i3)
-post <- extract(fit_i3)
-post2 <- extract.samples(fit_i3)
-list(post$phi)
-plot(precis(apply(post$phi , 2, list) ))
-precis(list(post$phi))
-precis(fit_i2 , pars='bA' , depth=3)
-precis(fit_i , depth=3 , pars='sigma_i') 
-precis(fit_i , depth=3 , pars='S') 
-plot(precis(fit_i , depth=3 , pars='I') )
-post <- extract.samples(fit_i)
-str(post)
-plot(precis(post$I[,,1]) )
-apply(post$I[,,1] , 2 , precis)
-post$I[,,1]
-plambda_male <- list
-precis(post$I[,,1] , depth=3)
+parlist_i_sa <- c("phi" , "lambda" , "G" , "S" , "bA" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" ,"log_lik" , "PrPreds" ) # i deleted 
+fit_i_sa = stan( file = 'stancode_age_sex/ewa_individual_sex_age.stan', data = datalist_i ,
+                 iter = 60, warmup=30, chains=2, cores=2, 
+                 control=list(adapt_delta=0.95) , pars=parlist_i_sa, refresh=10 , seed=666)
+
+####cue-biases
+
+#cohort-bias
+datalist_coho <- list(
+  n_obs = nrow(d) ,                                  #length of dataset
+  n_id = length( unique(d$mono_index) ) ,       #number of individuals
+  n_behav = max(d$technique_index) ,                   #number of processing techniques
+  n_group = max(d$grouptoday_i) ,
+  tech = d$technique_index,                     #technique index
+  y = cbind( d$y1 , d$y2 , d$y3 ,d$y4 , d$y5 , d$y6 ) ,              #individual payoff at timestep (1 if succeed, 0 is fail)
+  q = cbind(d$c1 , d$c2 , d$c3 , d$c4 ,d$c5 ,d$c6  ) ,
+  s = cbind(d$s1 , d$s2 , d$s3 , d$s4 ,d$s5 ,d$s6  ) ,
+  bout = d$forg_bout ,                          #processing bout unique to individual J
+  id = d$mono_index ,                      #individual ID
+  sex_index=d$sex_index ,
+  group_index=d$grouptoday_i ,
+  logage = d$logage_s ,
+  n_effects=4                               #number of parameters to estimates
+)
 
 
+##frequencey dep
+parlist_freq_s <- c("phi" , "lambda" , "gamma" , "fc" , "G" , "S" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
+fit_freq_s = stan( file = 'stancode_sex/ewa_freq_sex.stan', data = datalist_coho , 
+                   iter = 60, warmup=30, chains=4, cores=4, 
+                   control=list(adapt_delta=0.95) , pars=parlist_freq_s, refresh=10 , seed=666)
+
+parlist_freq_sa <- c("phi" , "lambda" , "gamma" , "fc" , "bA" , "G" , "S" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
+fit_freq_sa = stan( file = 'stancode_age_sex/ewa_freq_sex_age.stan', data = datalist_coho , 
+                   iter = 60, warmup=30, chains=4, cores=4, 
+                   control=list(adapt_delta=0.95) , pars=parlist_freq_sa, refresh=10 , seed=666)
+
+
+datalist_coho$q <- datalist_coho$q / max(datalist_coho$q)
+
+parlist_coho_s <- c("phi" , "lambda" , "gamma" , "beta" , "G" , "S" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
+fit_coho_s = stan( file = 'stancode_sex/ewa_cue_sex.stan', data = datalist_coho , 
+                iter = 60, warmup=30, chains=4, cores=4, 
+                control=list(adapt_delta=0.95) , pars=parlist_coho_s, refresh=10 , seed=666)
+
+parlist_coho_sa <- c("phi" , "lambda" , "gamma" , "beta" , "bA" , "G" , "S" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
+fit_coho_sa = stan( file = 'stancode_age_sex/ewa_cue_sex_age.stan', data = datalist_coho , 
+                   iter = 60, warmup=30, chains=4, cores=4, 
+                   control=list(adapt_delta=0.95) , pars=parlist_coho_sa, refresh=10 , seed=666)
+
+
+###age
+
+###kin
+
+###sex
 
 #####old stuff below################33
 # ssh -l brendan_barrett ecocn03
