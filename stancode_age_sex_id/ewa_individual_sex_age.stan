@@ -15,7 +15,7 @@ int group_index[n_obs];   //index variable for age; 1 is female 2 is male
 
 parameters {
 matrix[2,n_effects] S;                  //sex  means
-matrix[n_id,n_effects] bA;                //age params per sex
+//matrix[n_id,n_effects] bA;                //age params per sex
 vector<lower=0>[n_effects] sigma_i;       // standard deviations of varying effects
 matrix[n_effects , n_id] zed_i;                // individual z-scores for cholesky decomp
 cholesky_factor_corr[n_effects] L_Rho_i;  // correlation matrix
@@ -38,8 +38,8 @@ model {
   real lambda[n_id];        // sensitivity to attraction scores
 
 //priors
-to_vector(S[1,]) ~ normal(1,0.6);
-to_vector(S[2,]) ~ normal(0,1);
+to_vector(S[,1]) ~ normal(1,0.6);
+to_vector(S[,2]) ~ normal(0,1);
 sigma_i ~ exponential(1);
 to_vector(zed_i) ~ normal(0,1);
 L_Rho_i ~ lkj_corr_cholesky(3);
@@ -57,7 +57,7 @@ L_Rho_g ~ lkj_corr_cholesky(3);
       }
     }
             lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 3]*logage[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + bA[id[i] , 4]*logage[i] );
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 4]*logage[i] );
             logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
             target += ( logPrA );
 
@@ -88,7 +88,7 @@ for ( i in 1:n_obs ) {
       }
     }//j
             lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 3]*logage[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + bA[id[i] , 4]*logage[i] );
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 4]*logage[i] );
             logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
             log_lik[i] = logPrA ;
 
