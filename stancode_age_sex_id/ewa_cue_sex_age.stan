@@ -10,7 +10,7 @@ data {
     real s[n_obs , n_behav];        // observed number of ttimes observing behaviors
     int bout[n_obs];        // processing bout per individual
     int id[n_obs];          // individual id
-    real logage[n_obs];          // individual id
+    real age[n_obs];          // individual id
     int n_effects;      // number of learning parameters to estimate
     int sex_index[n_obs];   //index variable for sex, 1 female, 2 male
     int group_index[n_obs];   //index variable for group
@@ -18,7 +18,7 @@ data {
 
 parameters {
     matrix[2 , n_effects] S;                    //sex  means
-    matrix[2 , n_effects] bA;                //age params per sex
+    //matrix[2 , n_effects] bA;                //age params per sex
     vector<lower=0>[n_effects] sigma_i;       // standard deviations of varying effects
     matrix[n_effects , n_id] zed_i;                // individual z-scores for cholesky decomp
     cholesky_factor_corr[n_effects] L_Rho_i;  // correlation matrix
@@ -66,10 +66,10 @@ model {
         }//j
         if ( bout[i]==1 ) {
             // calculate new individual's parameter values
-            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + bA[sex_index[i] , 1]*logage[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + bA[sex_index[i] , 2]*logage[i] );
-            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + bA[sex_index[i] , 3]*logage[i] );
-            beta[id[i]] =  I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + bA[sex_index[i] , 4]*logage[i]  ;
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*age[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*age[i] );
+            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*age[i] );
+            beta[id[i]] =  I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] +  I[id[i] , 8]*age[i]  ;
         }
         logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
         
@@ -122,10 +122,10 @@ generated quantities{
 
         if ( bout[i]==1 ) {
             // calculate new individual's parameter values
-             lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + bA[sex_index[i] , 1]*logage[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + bA[sex_index[i] , 2]*logage[i] );
-            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + bA[sex_index[i] , 3]*logage[i] );
-            beta[id[i]] =  I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + bA[sex_index[i] , 4]*logage[i]  ;
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*age[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*age[i] );
+            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*age[i] );
+            beta[id[i]] =  I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] +  I[id[i] , 8]*age[i]  ;
         }
 
         logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
