@@ -15,7 +15,7 @@ for(r in 1:nrow(d)){
   d$max_bouts[r] <- max(d$forg_bout[d$mono_index==d$mono_index[r]])
 }
 
-d <- d[d$max_bouts>9,]
+d <- d[d$max_bouts>1,]
 d$logage <- log(d$age)
 d$logage_s <- (d$logage -mean(d$logage))/sd(d$logage)
 d$logagecont <- log(d$agecont)
@@ -202,7 +202,7 @@ datalist_i <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
-  logage = d$logage_s ,
+  age = d$agecont_s ,
   n_effects=2*2                               #number of parameters to estimates
 )
 
@@ -227,7 +227,7 @@ datalist_coho <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
-  logage = d$logage_s ,
+  age = d$agecont_s ,
   n_effects=4*2                               #number of parameters to estimates
 )
 
@@ -246,7 +246,7 @@ fit_coho_sa = stan( file = 'stancode_age_sex/ewa_cue_sex_age.stan', data = datal
                    iter = 1000, warmup=500, chains=4, cores=4, 
                    control=list(adapt_delta=0.99) , pars=parlist_coho_sa, refresh=10 , seed=668 , init=0)
 
-save(fit_i_sa , d , file="fit_i_sa_st_160320201222.rdata")
+#save(fit_i_sa , d , file="fit_i_sa_st_160320201222.rdata")
 
 ###age_bias###########
 datalist_age <- list(
@@ -262,7 +262,7 @@ datalist_age <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
-  logage = d$logage_s ,
+  age = d$agecont ,
   n_effects=4*2                               #number of parameters to estimates
 )
 
@@ -286,7 +286,7 @@ datalist_kin <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
-  logage = d$logage_s ,
+  age = d$agecont ,
   n_effects=8                              #number of parameters to estimates
 )
 
@@ -297,7 +297,7 @@ fit_kin_sa = stan( file = 'stancode_age_sex/ewa_cue_sex_age.stan', data = datali
                    iter = 1000, warmup=500, chains=4, cores=4, seed=232, adapt.delta=0.99 , init=0)
 
 
-save( d , fit_coho_sa , fit_i_sa , fit_kin_sa , file="17032021_il_coho_kin_sa.rdata")
+#save( d , fit_coho_sa , fit_i_sa , fit_kin_sa , file="17032021_il_coho_kin_sa.rdata")
 #####old stuff below################33
 # ssh -l brendan_barrett ecocn03
 # ssh -l brendan_barrett ecocn04

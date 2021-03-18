@@ -9,7 +9,7 @@ data {
     int bout[n_obs];        // processing bout per individual
     int id[n_obs];          // individual id
     int n_effects;      // number of learning parameters to estimate
-    real logage[n_obs];          // individual id
+    real age[n_obs];          // individual id
     int sex_index[n_obs];   //index variable for sex, 1 female, 2 male
     int group_index[n_obs];   //index variable for group
 
@@ -68,10 +68,10 @@ model {
 
         if ( bout[i]==1 ) {
             // calculate new individual's parameter values
-            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*logage[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*logage[i] );
-            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*logage[i] );
-            fc[id[i]] =  exp( I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + I[id[i] , 8]*logage[i] ) ;
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*age[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*age[i] );
+            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*age[i] );
+            fc[id[i]] =  exp( I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + I[id[i] , 8]*age[i] ) ;
         }
 
         logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
@@ -123,10 +123,10 @@ generated quantities{
         }//j
 
         if ( bout[i]==1 ) {
-            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*logage[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*logage[i] );
-            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*logage[i] );
-            fc[id[i]] =  exp( I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + I[id[i] , 8]*logage[i] ) ;
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*age[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*age[i] );
+            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*age[i] );
+            fc[id[i]] =  exp( I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + I[id[i] , 8]*age[i] ) ;
         }
 
         logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
