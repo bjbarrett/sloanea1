@@ -236,13 +236,13 @@ datalist_coho$q <- datalist_coho$q / max(datalist_coho$q)
 ##frequencey dep##
 
 parlist_freq_sa <- c("phi" , "lambda" , "gamma" , "fc" , "G" , "S" , "I" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
-fit_freq_sa = stan( file = 'stancode_age_sex/ewa_freq_sex_age.stan', data = datalist_coho , 
+fit_freq_sa = stan( file = 'stancode_age_sex_id/ewa_freq_sex_age.stan', data = datalist_coho , 
                    iter = 1000, warmup=500, chains=4, cores=4, 
                    control=list(adapt_delta=0.99) , pars=parlist_freq_sa, refresh=10 , seed=667)
 
 ######cohort######
 parlist_coho_sa <- c("phi" , "lambda" , "gamma" , "beta" , "G" , "S" , "I" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) # I deleted
-fit_coho_sa = stan( file = 'stancode_age_sex/ewa_cue_sex_age.stan', data = datalist_coho , 
+fit_coho_sa = stan( file = 'stancode_age_sex_id/ewa_cue_sex_age.stan', data = datalist_coho , 
                    iter = 1000, warmup=500, chains=4, cores=4, 
                    control=list(adapt_delta=0.99) , pars=parlist_coho_sa, refresh=10 , seed=668 , init=0)
 
@@ -262,7 +262,7 @@ datalist_age <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
-  age = d$agecont ,
+  age = d$agecont_s ,
   n_effects=4*2                               #number of parameters to estimates
 )
 
@@ -286,14 +286,14 @@ datalist_kin <- list(
   id = d$mono_index ,                      #individual ID
   sex_index=d$sex_index ,
   group_index=d$grouptoday_i ,
-  age = d$agecont ,
+  age = d$agecont_s ,
   n_effects=8                              #number of parameters to estimates
 )
 
 datalist_kin$q <- datalist_kin$q / max(datalist_kin$q)
 
 parlist_kin_sa <- c("phi" , "lambda" , "gamma" , "beta" , "G" , "S" , "I" , "sigma_i" ,"Rho_i" , "sigma_g" ,"Rho_g" , "log_lik" ,"PrPreds" ) 
-fit_kin_sa = stan( file = 'stancode_age_sex/ewa_cue_sex_age.stan', data = datalist_kin , 
+fit_kin_sa = stan( file = 'stancode_age_sex_id/ewa_cue_sex_age.stan', data = datalist_kin , 
                    iter = 1000, warmup=500, chains=4, cores=4, seed=232, adapt.delta=0.99 , init=0)
 
 
