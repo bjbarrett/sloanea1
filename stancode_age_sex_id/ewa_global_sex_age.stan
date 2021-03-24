@@ -6,8 +6,10 @@ data {
     int n_group;              // num groups
     int tech[n_obs];        // techique chosen
     real y[n_obs , n_behav];        // observed personal yields of techs (1/0)
-    real q[n_obs , n_behav];       // observed cue social variables of techs 1-K
-    real s[n_obs , n_behav];        // observed number of ttimes observing behaviors
+    real a[n_obs , n_behav];       // age cues
+    real k[n_obs , n_behav];       // kin cues
+    real c[n_obs , n_behav];       // cohort cues
+    real s[n_obs , n_behav];        // observed number of times observing behaviors
     int bout[n_obs];        // processing bout per individual
     int id[n_obs];          // individual id
     real age[n_obs];          // individual id
@@ -18,7 +20,6 @@ data {
 
 parameters {
     matrix[2 , n_effects] S;                    //sex  means
-    //matrix[2 , n_effects] bA;                //age params per sex
     vector<lower=0>[n_effects*2] sigma_i;       // standard deviations of varying effects
     matrix[n_effects*2 , n_id] zed_i;                // individual z-scores for cholesky decomp
     cholesky_factor_corr[n_effects*2] L_Rho_i;  // correlation matrix
@@ -38,16 +39,26 @@ model {
     real logPrA;        // asocial learning logprob
     real PrS;           // social learning temp
     vector[n_behav] lin_mod;  // loglinear model cues
+    vector[n_behav] s_temp;  // temporary vars for frq dep
     real phi[n_id];           // stickiness parameter to recent experience
     real lambda[n_id];        // sensitivity to attraction scores
     real gamma[n_id];         // social weight
-    real beta[n_id];     // conform exponent
+    real fc[n_id];     // conform exponent
+    real beta_age[n_id];     
+    real beta_coho[n_id];     
+    real beta_kin[n_id];     
+
+
 
     //priors
     to_vector(S[,1]) ~ normal(1,0.6);
     to_vector(S[,2]) ~ normal(0,1);
     to_vector(S[,3]) ~ normal(0,1);
-    to_vector(S[,4]) ~ normal(0,1);
+    to_vector(S[,4]) ~ normal(0,0.5);
+    to_vector(S[,5]) ~ normal(0,1);
+    to_vector(S[,6]) ~ normal(0,1);
+    to_vector(S[,7]) ~ normal(0,1);
+    
     sigma_i ~ exponential(1);
     to_vector(zed_i) ~ normal(0,1);
     L_Rho_i ~ lkj_corr_cholesky(3);
@@ -66,10 +77,15 @@ model {
         }//j
         if ( bout[i]==1 ) {
             // calculate new individual's parameter values
-            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*age[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*age[i] );
-            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*age[i] );
-            beta[id[i]] =  I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] +  I[id[i] , 8]*age[i]  ;
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 8]*age[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 9]*age[i] );
+            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 10]*age[i] );
+            fc[id[i]] =  exp( I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + I[id[i] , 11]*age[i] ) ;
+            beta_age[id[i]] =  I[id[i] , 5] + G[group_index[i] , 5]  + S[sex_index[i] , 5] +  I[id[i] , 12]*age[i]  ;
+            beta_coho[id[i]] =  I[id[i] , 6] + G[group_index[i] , 6]  + S[sex_index[i] , 6] +  I[id[i] , 13]*age[i]  ;
+            beta_kin[id[i]] =  I[id[i] , 7] + G[group_index[i] , 7]  + S[sex_index[i] , 7] +  I[id[i] , 14]*age[i]  ;
+
+
         }
         logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
         
@@ -77,9 +93,13 @@ model {
         if ( bout[i] > 1 ) {
             if (sum( s[i] ) > 0 ) { // only socially learn if there is social info
                 for ( j in 2:n_behav ) {
-                    lin_mod[j] = exp( beta[id[i]]*q[i,j]);                 // compute non-frequency cue as log-linear model
+                    lin_mod[j] = exp( beta_age[id[i]]*a[i,j] + beta_coho[id[i]]*c[i,j] + beta_kin[id[i]]*k[i,j]);                 // compute non-frequency cue as log-linear model
                 }
                 lin_mod[1] = 1; // aliased outcome
+                                
+                for ( j in 1:n_behav ) s_temp[j] = pow(s[i,j] , fc[id[i]]); // compute frequency cue
+                for ( j in 1:n_behav ) lin_mod[j] = lin_mod[j] * s_temp[j]; //combine both
+                
                 PrS = lin_mod[tech[i]]/sum(lin_mod);
                 target += ( log( (1-gamma[id[i]])*exp(logPrA) + gamma[id[i]]*PrS ) );
             } else {
@@ -98,10 +118,14 @@ generated quantities{
     real logPrA;        // individual learning temp
     real PrS;        // social learning temp
     vector[n_behav] lin_mod;
+    vector[n_behav] s_temp;
     real lambda[n_id];           // stickiness parameter
     real phi[n_id];           // stickiness parameter
     real gamma[n_id];         // social weight
-    real beta[n_id];     // cue-bias
+    real fc[n_id];     // strength freq dep
+    real beta_age[n_id];     // age-bias 
+    real beta_coho[n_id];     // cohort-bias
+    real beta_kin[n_id];     // kin-bias
     matrix[n_effects*2,n_effects*2] Rho_i;
     matrix[n_effects,n_effects] Rho_g;
     matrix[n_obs , n_behav] PrPreds;     
@@ -122,10 +146,13 @@ generated quantities{
 
         if ( bout[i]==1 ) {
             // calculate new individual's parameter values
-            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 5]*age[i] ) ;
-            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 6]*age[i] );
-            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 7]*age[i] );
-            beta[id[i]] =  I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] +  I[id[i] , 8]*age[i]  ;
+            lambda[id[i]] = exp( I[id[i],1] + G[group_index[i],1] + S[sex_index[i] , 1] + I[id[i] , 8]*age[i] ) ;
+            phi[id[i]]= inv_logit(  I[id[i],2] + G[group_index[i],2]  + S[sex_index[i] , 2] + I[id[i] , 9]*age[i] );
+            gamma[id[i]] = inv_logit(  I[id[i],3] + G[group_index[i],3]  + S[sex_index[i] , 3] + I[id[i] , 10]*age[i] );
+            fc[id[i]] =  exp( I[id[i] , 4] + G[group_index[i] , 4]  + S[sex_index[i] , 4] + I[id[i] , 11]*age[i] ) ;
+            beta_age[id[i]] =  I[id[i] , 5] + G[group_index[i] , 5]  + S[sex_index[i] , 5] +  I[id[i] , 12]*age[i]  ;
+            beta_coho[id[i]] =  I[id[i] , 6] + G[group_index[i] , 6]  + S[sex_index[i] , 6] +  I[id[i] , 13]*age[i]  ;
+            beta_kin[id[i]] =  I[id[i] , 7] + G[group_index[i] , 7]  + S[sex_index[i] , 7] +  I[id[i] , 14]*age[i]  ;
         }
 
         logPrA = lambda[id[i]]*AC[tech[i]] - log_sum_exp( lambda[id[i]]*AC );
@@ -136,10 +163,13 @@ generated quantities{
 
                 // compute non-frequency cues as log-linear model
                 for ( j in 2:n_behav ) {
-                    lin_mod[j] = exp( beta[id[i]]*q[i,j]);
+                    lin_mod[j] = exp( beta_age[id[i]]*a[i,j] + beta_coho[id[i]]*c[i,j] + beta_kin[id[i]]*k[i,j]);                 // compute non-frequency cue as log-linear model
                 }
                 lin_mod[1] = 1; // aliased outcome
-                // compute frequency cue
+                
+                for ( j in 1:n_behav ) s_temp[j] = pow(s[i,j] , fc[id[i]]); // compute frequency cue
+                for ( j in 1:n_behav ) lin_mod[j] = lin_mod[j] * s_temp[j]; //combine both
+                
                 PrS = lin_mod[tech[i]]/sum(lin_mod);
 
                 log_lik[i] =  log( (1-gamma[id[i]])*exp(logPrA) + gamma[id[i]]*PrS )  ; 

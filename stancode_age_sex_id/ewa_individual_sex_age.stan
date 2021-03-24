@@ -15,20 +15,19 @@ int group_index[n_obs];   //index variable for age; 1 is female 2 is male
 
 parameters {
 matrix[2,n_effects] S;                  //sex  means
-//matrix[n_id,n_effects] bA;                //age params per sex
-vector<lower=0>[n_effects] sigma_i;       // standard deviations of varying effects
-matrix[n_effects , n_id] zed_i;                // individual z-scores for cholesky decomp
-cholesky_factor_corr[n_effects] L_Rho_i;  // correlation matrix
+vector<lower=0>[n_effects*2] sigma_i;       // standard deviations of varying effects
+matrix[n_effects*2 , n_id] zed_i;                // individual z-scores for cholesky decomp
+cholesky_factor_corr[n_effects*2] L_Rho_i;  // correlation matrix
 vector<lower=0>[n_effects] sigma_g;       // standard deviations of varying effects
 matrix[n_effects,n_group] zed_g;                // individual z-scores for cholesky decomp
 cholesky_factor_corr[n_effects] L_Rho_g;  // correlation matrix
 }
 
 transformed parameters{
-    matrix[n_id,n_effects] I;              //define varying effects for individuals
+    matrix[n_id,n_effects*2] I;              //define varying effects for individuals
     matrix[n_group,n_effects] G;              //define varying effects for groups
-    I = (diag_pre_multiply(sigma_i,L_Rho_i) * zed_i)'; //cholesky decomp majick
-    G = (diag_pre_multiply(sigma_g,L_Rho_g) * zed_g)'; //cholesky decomp majick
+    I = (diag_pre_multiply(sigma_i,L_Rho_i) * zed_i)'; //cholesky decomp 
+    G = (diag_pre_multiply(sigma_g,L_Rho_g) * zed_g)'; //cholesky decomp 
 }
 
 model {
@@ -71,7 +70,7 @@ generated quantities {
     vector[n_behav] lin_mod;
     real lambda[n_id];           // stickiness parameter
     real phi[n_id];           // stickiness parameter
-    matrix[n_effects,n_effects] Rho_i;
+    matrix[n_effects*2,n_effects*2] Rho_i;
     matrix[n_effects,n_effects] Rho_g;
     matrix[n_obs,n_behav] PrPreds;     
 
