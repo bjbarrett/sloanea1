@@ -166,6 +166,10 @@ fit_i_sex <- mod$sample(
 
 fit_i_sex$save_object(file = "fit_i_sex_cmd.rds")
 
+file <- file.path("2023stancode/ewa_ind_age_cat.stan")
+mod <- cmdstan_model(file , cpp_options = list(stan_threads = TRUE) )
+
+fit_i_age$save_object(file = "fit_i_age_cmd.rds")
 ######## frequency dependent learning
 datalist <- list(
   N = nrow(d) ,                                  #length of dataset
@@ -264,18 +268,18 @@ datalist <- list(
 file <- file.path("2023stancode/ewa_cue_cat.stan")
 mod <- cmdstan_model(file , cpp_options = list(stan_threads = TRUE) )
 
-fit_coho <- mod$sample(
+fit_age <- mod$sample(
   data = datalist,
-  seed = 697,
+  seed = 60,
   chains = 3,
   parallel_chains = 3,
-  refresh = 10,
+  refresh = 25,
   iter_sampling = 500,
   iter_warmup = 500,
   threads=20,
-  adapt_delta = 0.99,
+  adapt_delta = 0.95,
 )
-fit_coho$save_object(file = "fit_coho_cmd.rds")
+fit_age$save_object(file = "fit_age_cmd.rds")
 
 ####kin-bias
 ###sex-biasd

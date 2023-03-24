@@ -29,7 +29,7 @@ model{
   matrix[N_id,6] A; // Attraction matrix
   // define the priors
   logit_phi ~  normal(0,1);
-  log_L ~  normal(-1,1);
+  log_L ~  normal(0,1);
   logit_gam ~ normal(0,1);
   log_f ~ normal(0,1);
   to_vector(z_ID) ~ normal(0,1);

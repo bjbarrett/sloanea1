@@ -1,60 +1,112 @@
 library(posterior)
 library(bayesplot)
+fit_i<- readRDS("~/sloanea1/fit_i_cmd.rds")
+fit_age <- readRDS("~/sloanea1/fit_age_cmd.rds")
+fit_i_age<- readRDS("~/sloanea1/fit_i_age_cmd.rds")
+fit_i_sex<- readRDS("~/sloanea1/fit_i_sex_cmd.rds")
+fit_f<- readRDS("~/sloanea1/fit_f_cmd.rds")
+fit_coho_sex <- readRDS("~/sloanea1/fit_coho_sex_cmd.rds")
+fit_coho <- readRDS("~/sloanea1/fit_coho_cmd.rds")
 
 #fit_i
 fit <- fit_i
-loo(fit_i$draws("log_lik"))
+loo(fit$draws("log_lik"))
 mcmc_hist(fit$draws("sigma_ID"))
 mcmc_hist(fit$draws(c("log_L" , "logit_phi")) , transformations = list(log_L=exp ,logit_phi = logistic))
-fit$summary(c("logit_phi"))
-fit$summary(c("log_L"))
-fit$summary("sigma_ID")
+fit$summary(c("log_L","logit_phi"))
 fit$summary("v_ID")
-fit$summary("pp")
+fit$summary("Rho_ID")
 fit$draws("pp")
-trace(fit, pars="sigma_ID")
 
-draws_df <- fit$draws(variables=c("logit_phi" , "log_L" , "v_ID" , "sigma_ID" , "Rho_ID" ,"pp" , "log_lik")  , format = "df")
+draws_df <- fit$draws(variables=c("log_L", "logit_phi", "v_ID" , "sigma_ID" , "Rho_ID" ,"pp" , "log_lik")  , format = "df")
 str(draws_df)
-xx <- posterior::as_draws_list(draws_df)
-stanfit <- rstan::read_stan_csv(fit$output_files())
-post_i <- extract(stanfit)
-precis(stanfit , pars=c("Rho_ID") , depth=3)
-str(post_i)
-str(stanfit)
-hist(post_i$pp[,11])
+##plot thyme
+LambdaDensPlot(draws_df , col="violet")
+PhiDensPlot(draws_df , col="blue")
+    
+
+# stanfit <- rstan::read_stan_csv(fit$output_files())
+# post_i <- extract(stanfit)
+# precis(stanfit , pars=c("Rho_ID") , depth=3)
 
 #fit_i_sex
-
-loo(fit_i_sex$draws("log_lik"))
-mcmc_hist(fit_i_sex$draws("sigma_ID"))
-mcmc_hist(fit_i_sex$draws(c("log_L" , "logit_phi")) , transformations = list(log_L=exp ,logit_phi = logistic))
-fit_i_sex$summary(c("logit_phi"))
-fit_i_sex$summary(c("log_L"))
-fit$summary("sigma_ID")
+fit <- fit_i_sex
+loo(fit$draws("log_lik"))
+mcmc_hist(fit$draws("sigma_ID"))
+mcmc_hist(fit$draws(c("log_L" , "logit_phi")))
+fit$summary(c("log_L","logit_phi"))
 fit$summary("v_ID")
-fit$summary("pp")
-fit$draws("pp")
-trace(fit, pars="sigma_ID")
+fit$summary("Rho_ID")
+
+#fit_i_age
+fit <- fit_i_age
+loo(fit$draws("log_lik"))
+mcmc_hist(fit$draws("sigma_ID"))
+mcmc_hist(fit$draws(c("log_L" , "logit_phi","b_age")))
+fit$summary(c("log_L","logit_phi","b_age"))
+fit$summary("v_ID")
+draws_df <- fit$draws(variables=c("b_age" ,"log_L", "logit_phi", "v_ID" , "sigma_ID" , "Rho_ID" ,"pp" , "log_lik")  , format = "df")
+LambdaDensPlot(draws_df , color="violet")
+PhiDensPlot(draws_df , color="blue")
 
 ##fit f
-loo(fit_f$draws("log_lik"))
-fit_f$summary(c("logit_phi"))
-fit_f$summary(c("logit_gam"))
-fit_f$summary(c("log_L"))
-fit_f$summary(c("log_f"))
-fit_f$summary("sigma_ID")
-fit_f$summary("v_ID")
+fit <- fit_f
+loo(fit$draws("log_lik"))
+mcmc_hist(fit$draws("sigma_ID"))
+mcmc_hist(fit$draws(c("log_L" , "logit_phi" , "logit_gam" , "log_f")))
+fit$summary(c("log_L" , "logit_phi" , "logit_gam" , "log_f"))
+fit$summary("v_ID")
+fit$summary("Rho_ID")
+draws_df <- fit$draws(variables=c("log_L", "logit_phi", "logit_gam" ,"log_f" , "v_ID" , "sigma_ID" , "Rho_ID" ,"pp" , "log_lik")  , format = "df")
+LambdaDensPlot(draws_df)
+PhiDensPlot(draws_df )
+GammaDensPlot(draws_df)
+FrDensPlot(draws_df)
 
-pred_f <- posterior_predict(fit_f)
+
 ##fit coho
-loo(fit_coho$draws("log_lik"))
-fit_coho$summary(c("logit_phi"))
-fit_coho$summary(c("logit_gam"))
-fit_coho$summary(c("log_L"))
-fit_coho$summary(c("gauss_beta"))
-fit_coho$summary("sigma_ID")
-fit_coho$summary("v_ID")
+fit <- fit_coho
+loo(fit$draws("log_lik"))
+mcmc_hist(fit$draws("sigma_ID"))
+mcmc_hist(fit$draws(c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta")))
+fit$summary(c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta" ,"sigma_ID"))
+fit$summary("v_ID")
+fit$summary("Rho_ID")
+draws_df <- fit$draws(variables=c("log_L", "logit_phi", "logit_gam" ,"gauss_beta" , "v_ID" , "sigma_ID" , "Rho_ID" ,"pp" , "log_lik")  , format = "df")
+LambdaDensPlot(draws_df)
+PhiDensPlot(draws_df )
+GammaDensPlot(draws_df)
+BetaDensPlot(draws_df)
+
+###fit_coho_sex
+fit <- fit_coho_sex
+loo(fit$draws("log_lik"))
+mcmc_hist(fit$draws("sigma_ID"))
+mcmc_hist(fit$draws(c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta")))
+fit$summary(c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta"))
+fit$summary("v_ID")
+fit$summary("Rho_ID")
+
+stanfit_coho_sex <- rstan::read_stan_csv(fit$output_files())
+post_coho_sex <- extract(stanfit_coho_sex)
+WAIC(stanfit_coho_sex)
+plot(precis(stanfit_coho_sex , pars=c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta") , depth=2))
+x <- precis(stanfit_coho_sex , pars="v_ID",depth=3)
+(x[seq(from=4 , to=nrow(x) , by=4),])
+(x[seq(from=3 , to=nrow(x) , by=4),])
+
+library(reshape2)
+melt(m)
+precis(post_coho_sex$v_ID[,,3])
+##fit age
+fit <- fit_age
+loo(fit$draws("log_lik"))
+mcmc_hist(fit$draws("sigma_ID"))
+mcmc_hist(fit$draws(c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta")))
+fit$summary(c("log_L" , "logit_phi" , "logit_gam" , "gauss_beta" ,"sigma_ID"))
+fit$summary("Rho_ID")
+
+fit$summary("v_ID")
 
 # library('rethinking')
 # load("~/Documents/sloanea1/17032021_il_coho_kin_sa_sloanea.rdata")
